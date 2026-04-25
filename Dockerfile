@@ -8,8 +8,7 @@ RUN dotnet restore server_vehicle_parts_ms/server_vehicle_parts_ms.csproj
 COPY server_vehicle_parts_ms/. server_vehicle_parts_ms/
 RUN dotnet publish server_vehicle_parts_ms/server_vehicle_parts_ms.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
