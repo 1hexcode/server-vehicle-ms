@@ -16,7 +16,7 @@ public class UsersController(IUserService userService): ControllerBase
         return Ok(response);
     }
 
-    [HttpGet]
+    [HttpGet("/health")]
     public IActionResult HealthCheck()
     {
         var response = new ApiResponse<string>
