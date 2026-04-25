@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/.vs
+**/.idea
+**/*.user
+.git
+.gitignore
+docs
+README.md
+*.sln.DotSettings.user
