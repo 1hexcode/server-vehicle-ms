@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using server_vehicle_parts_ms.Data;
 using server_vehicle_parts_ms.Data.Entities;
@@ -76,6 +77,28 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    if (!db.Users.Any(u => u.Role == UserRoles.Admin))
+    {
+        var email    = Environment.GetEnvironmentVariable("ADMIN_EMAIL")    ?? "admin@local";
+        var password = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? throw new InvalidOperationException("ADMIN_PASSWORD not set");
+        var phone    = Environment.GetEnvironmentVariable("ADMIN_PHONE")    ?? "0000000000";
+
+        var admin = new Users
+        {
+            Id          = Guid.NewGuid(),
+            Email       = email,
+            FullName    = "Administrator",
+            Role        = UserRoles.Admin,
+            PhoneNumber = phone,
+            Address     = "-",
+            isActive    = true,
+        };
+        admin.Password = new PasswordHasher<Users>().HashPassword(admin, password);
+
+        db.Users.Add(admin);
+        db.SaveChanges();
+    }
 }
 
 // Configure the HTTP request pipeline.
