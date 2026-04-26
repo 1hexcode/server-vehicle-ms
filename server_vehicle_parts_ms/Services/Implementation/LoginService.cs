@@ -31,7 +31,7 @@ public class LoginService
                 Message = "Invalid email or password"
             };
         }
-        
+
         var result = new PasswordHasher<Users>().VerifyHashedPassword(user, user.Password, loginDto.Password);
 
         if (result != PasswordVerificationResult.Success)
@@ -40,6 +40,15 @@ public class LoginService
             {
                 Success = false,
                 Message = "Invalid email or password"
+            };
+        }
+
+        if (!user.isActive)
+        {
+            return new ApiResponse<string>
+            {
+                Success = false,
+                Message = "Account is disabled"
             };
         }
 
