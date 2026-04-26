@@ -70,6 +70,19 @@ builder.Services.AddControllers()
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginService>();
+builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<VendorService>();
+builder.Services.AddScoped<PartCategoryService>();
+builder.Services.AddScoped<VehiclePartService>();
+builder.Services.AddScoped<StockMovementService>();
+builder.Services.AddScoped<PurchaseInvoiceService>();
+builder.Services.AddScoped<SalesInvoiceService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<VehicleService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<PartRequestService>();
+builder.Services.AddScoped<ReviewService>();
 
 var app = builder.Build();
 
