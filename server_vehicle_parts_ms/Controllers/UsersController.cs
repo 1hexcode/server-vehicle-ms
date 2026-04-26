@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server_vehicle_parts_ms.Dtos;
 using server_vehicle_parts_ms.Dtos.Request;
@@ -10,13 +11,15 @@ namespace server_vehicle_parts_ms.Controllers;
 public class UsersController(IUserService userService): ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] UserCreateDto userCreateDto)
+    [AllowAnonymous]
+    public async Task<IActionResult> RegisterCustomer([FromBody] RegisterUserDto dto)
     {
-        var response = await userService.CreateUserAsync(userCreateDto);
+        var response = await userService.CreateCustomerAsync(dto);
         return Ok(response);
     }
 
     [HttpGet("/health")]
+    [AllowAnonymous]
     public IActionResult HealthCheck()
     {
         var response = new ApiResponse<string>
