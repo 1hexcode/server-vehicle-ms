@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace server_vehicle_parts_ms.Data.Entities;
 
-public class Users
+public class Users : IHasTimestamps
 {
     [Key]
     public Guid Id { get; set; }
@@ -22,4 +22,5 @@ public class Users
     public string Address { get; set; }
     public bool isActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? UpdatedAt { get; set; }
 }
