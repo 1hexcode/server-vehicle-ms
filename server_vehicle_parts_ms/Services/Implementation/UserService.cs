@@ -11,11 +11,48 @@ namespace server_vehicle_parts_ms.Services.Implementation;
 
 public class UserService(AppDbContext dbContext): IUserService
 {
-    public async Task<ApiResponse<UserCreateResponseDto>> CreateUserAsync(UserCreateDto userCreateDto)
+    public Task<ApiResponse<UserCreateResponseDto>> CreateStaffAsync(RegisterUserDto dto)
+        => CreateWithRoleAsync(dto, UserRoles.Staff);
+
+    public Task<ApiResponse<UserCreateResponseDto>> CreateCustomerAsync(RegisterUserDto dto)
+        => CreateWithRoleAsync(dto, UserRoles.Customer);
+
+    public async Task<ApiResponse<string>> DisableStaffAsync(Guid id)
     {
         try
         {
-            if (await dbContext.Users.AnyAsync(u => u.Email == userCreateDto.Email))
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return new ApiResponse<string> { Success = false, Message = "Staff not found" };
+            }
+            if (user.Role != UserRoles.Staff)
+            {
+                return new ApiResponse<string> { Success = false, Message = "User is not staff" };
+            }
+
+            user.isActive = false;
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<string> { Success = true, Message = "Staff disabled" };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return new ApiResponse<string>
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    private async Task<ApiResponse<UserCreateResponseDto>> CreateWithRoleAsync(RegisterUserDto dto, UserRoles role)
+    {
+        try
+        {
+            if (await dbContext.Users.AnyAsync(u => u.Email == dto.Email))
             {
                 return new ApiResponse<UserCreateResponseDto>
                 {
@@ -23,8 +60,7 @@ public class UserService(AppDbContext dbContext): IUserService
                     Message = "Email already exists"
                 };
             }
-            // Validate password match
-            if (userCreateDto.Password != userCreateDto.PasswordVerify)
+            if (dto.Password != dto.PasswordVerify)
             {
                 return new ApiResponse<UserCreateResponseDto>
                 {
@@ -33,9 +69,7 @@ public class UserService(AppDbContext dbContext): IUserService
                     Errors = new List<string> { "Password and Confirm Password must be the same" }
                 };
             }
-            
-            // Validate strength
-            if (string.IsNullOrWhiteSpace(userCreateDto.Password) || userCreateDto.Password.Length < 6)
+            if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 6)
             {
                 return new ApiResponse<UserCreateResponseDto>
                 {
@@ -43,40 +77,35 @@ public class UserService(AppDbContext dbContext): IUserService
                     Message = "Password must be at least 6 characters long"
                 };
             }
+
             var passwordHasher = new PasswordHasher<Users>();
-            
-            Users user = new Users
+            var user = new Users
             {
-                Email = userCreateDto.Email,
-                Password = userCreateDto.Password,
-                FullName = userCreateDto.FullName,
-                PhoneNumber = userCreateDto.PhoneNumber,
-                Address = userCreateDto.Address,
+                Email = dto.Email,
+                FullName = dto.FullName,
+                PhoneNumber = dto.PhoneNumber,
+                Address = dto.Address,
                 isActive = true,
-                Role = userCreateDto.Role
+                Role = role
             };
-            
-            // Hash password
-            user.Password = passwordHasher.HashPassword(user, userCreateDto.Password);
-            
+            user.Password = passwordHasher.HashPassword(user, dto.Password);
+
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
-            
-            var response = new UserCreateResponseDto()
-            {
-                Id = user.Id,
-                Email = user.Email,
-                FullName = user.FullName,
-                PhoneNumber = user.PhoneNumber,
-                Address = user.Address,
-                Role = user.Role.ToString()
-            };
-            
+
             return new ApiResponse<UserCreateResponseDto>
             {
                 Success = true,
-                Data = response,
-                Message = "User created successfully"
+                Message = $"{role} created successfully",
+                Data = new UserCreateResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Address = user.Address,
+                    Role = user.Role.ToString()
+                }
             };
         }
         catch (Exception ex)
