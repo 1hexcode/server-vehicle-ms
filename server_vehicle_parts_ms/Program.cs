@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using server_vehicle_parts_ms.Data;
 using server_vehicle_parts_ms.Data.Entities;
+using server_vehicle_parts_ms.Helpers;
 using server_vehicle_parts_ms.Services.Implementation;
 using server_vehicle_parts_ms.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -61,6 +62,18 @@ var connectionString = !string.IsNullOrEmpty(databaseUrl)
 builder.Services.AddDbContext<AppDbContext>(
     (options) => { options.UseNpgsql(connectionString); }
 );
+
+var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+var redisConfiguration = !string.IsNullOrEmpty(redisUrl)
+    ? BuildRedisConnectionString(redisUrl)
+    : builder.Configuration.GetConnectionString("Redis");
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfiguration;
+    options.InstanceName = $"vpms:{builder.Environment.EnvironmentName}:";
+});
+builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -138,4 +151,13 @@ static string BuildNpgsqlConnectionString(string databaseUrl)
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':', 2);
     return $"Host={uri.Host};Port={uri.Port};Username={userInfo[0]};Password={userInfo[1]};Database={uri.AbsolutePath.TrimStart('/')};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+// REDIS_URL comes as redis://default:password@host:port (or rediss:// for TLS); StackExchange.Redis wants host:port,password=...,ssl=...
+static string BuildRedisConnectionString(string redisUrl)
+{
+    var uri = new Uri(redisUrl);
+    var password = uri.UserInfo.Split(':', 2).ElementAtOrDefault(1) ?? "";
+    var ssl = uri.Scheme == "rediss";
+    return $"{uri.Host}:{uri.Port},password={password},ssl={ssl.ToString().ToLowerInvariant()},abortConnect=false";
 }
