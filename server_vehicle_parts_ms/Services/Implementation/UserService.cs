@@ -17,6 +17,73 @@ public class UserService(AppDbContext dbContext): IUserService
     public Task<ApiResponse<UserCreateResponseDto>> CreateCustomerAsync(RegisterUserDto dto)
         => CreateWithRoleAsync(dto, UserRoles.Customer);
 
+    public async Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllStaffAsync()
+    {
+        var staff = await dbContext.Users
+            .Where(u => u.Role == UserRoles.Staff)
+            .OrderByDescending(u => u.CreatedAt)
+            .Select(u => new UserCreateResponseDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FullName = u.FullName,
+                PhoneNumber = u.PhoneNumber,
+                Address = u.Address,
+                Role = u.Role.ToString(),
+                IsActive = u.isActive
+            })
+            .ToListAsync();
+
+        return new ApiResponse<IEnumerable<UserCreateResponseDto>>
+        {
+            Success = true,
+            Data = staff
+        };
+    }
+
+    public async Task<ApiResponse<UserCreateResponseDto>> UpdateStaffAsync(Guid id, UpdateStaffDto dto)
+    {
+        try
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null || user.Role != UserRoles.Staff)
+            {
+                return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Staff not found" };
+            }
+
+            user.FullName = dto.FullName;
+            user.PhoneNumber = dto.PhoneNumber;
+            user.Address = dto.Address;
+            user.isActive = dto.IsActive;
+
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<UserCreateResponseDto>
+            {
+                Success = true,
+                Message = "Staff updated successfully",
+                Data = new UserCreateResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Address = user.Address,
+                    Role = user.Role.ToString(),
+                    IsActive = user.isActive
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<UserCreateResponseDto>
+            {
+                Success = false,
+                Message = ex.Message
+            };
+        }
+    }
+
     public async Task<ApiResponse<string>> DisableStaffAsync(Guid id)
     {
         try
@@ -104,7 +171,8 @@ public class UserService(AppDbContext dbContext): IUserService
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
-                    Role = user.Role.ToString()
+                    Role = user.Role.ToString(),
+                    IsActive = user.isActive
                 }
             };
         }
