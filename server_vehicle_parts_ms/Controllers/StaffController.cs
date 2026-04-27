@@ -17,6 +17,20 @@ public class StaffController(IUserService userService) : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetStaff()
+    {
+        var response = await userService.GetAllStaffAsync();
+        return Ok(response);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> UpdateStaff(Guid id, [FromBody] UpdateStaffDto dto)
+    {
+        var response = await userService.UpdateStaffAsync(id, dto);
+        return Ok(response);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DisableStaff(Guid id)
     {
