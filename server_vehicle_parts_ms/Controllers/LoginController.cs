@@ -14,4 +14,11 @@ public class LoginController(LoginService loginService): ControllerBase
         var response = await loginService.LoginAsync(loginDto);
         return Ok(response);
     }
+
+    [HttpPost("verify-otp")]
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto dto)
+    {
+        var response = await loginService.VerifyLoginOtpAsync(dto);
+        return Ok(response);
+    }
 }

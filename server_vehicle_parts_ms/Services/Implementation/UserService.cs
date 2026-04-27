@@ -9,7 +9,7 @@ using server_vehicle_parts_ms.Services.Interface;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
-public class UserService(AppDbContext dbContext): IUserService
+public class UserService(AppDbContext dbContext, IEmailService emailService, IConfiguration configuration): IUserService
 {
     public Task<ApiResponse<UserCreateResponseDto>> CreateStaffAsync(RegisterUserDto dto)
         => CreateWithRoleAsync(dto, UserRoles.Staff);
@@ -79,6 +79,7 @@ public class UserService(AppDbContext dbContext): IUserService
             }
 
             var passwordHasher = new PasswordHasher<Users>();
+            var otp = new Random().Next(100000, 999999).ToString();
             var user = new Users
             {
                 Email = dto.Email,
@@ -86,17 +87,26 @@ public class UserService(AppDbContext dbContext): IUserService
                 PhoneNumber = dto.PhoneNumber,
                 Address = dto.Address,
                 isActive = true,
-                Role = role
+                Role = role,
+                IsEmailVerified = false, // Must verify now
+                EmailVerificationToken = otp,
+                TokenExpiry = DateTime.UtcNow.AddMinutes(15)
             };
             user.Password = passwordHasher.HashPassword(user, dto.Password);
 
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
 
+            await emailService.SendEmailAsync(
+                user.Email,
+                "Verify your account",
+                $"Your verification code is: {otp}"
+            );
+
             return new ApiResponse<UserCreateResponseDto>
             {
                 Success = true,
-                Message = $"{role} created successfully",
+                Message = "Registration successful. Please verify your email.",
                 Data = new UserCreateResponseDto
                 {
                     Id = user.Id,
@@ -118,5 +128,69 @@ public class UserService(AppDbContext dbContext): IUserService
                 Errors = new List<string> { ex.Message }
             };
         }
+    }
+
+    private static string ResolveBaseUrl(IConfiguration configuration)
+    {
+        var configuredBaseUrl = configuration["App:PublicBaseUrl"];
+        if (!string.IsNullOrWhiteSpace(configuredBaseUrl))
+        {
+            return configuredBaseUrl.TrimEnd('/');
+        }
+
+        var configuredUrls = configuration["ASPNETCORE_URLS"]
+                             ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+                             ?? Environment.GetEnvironmentVariable("DOTNET_URLS");
+
+        if (!string.IsNullOrWhiteSpace(configuredUrls))
+        {
+            var firstUrl = configuredUrls
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(firstUrl))
+            {
+                return firstUrl.TrimEnd('/');
+            }
+        }
+
+        return "http://localhost:5091";
+    }
+
+    public async Task<ApiResponse<string>> VerifyOtpAsync(VerifyOtpDto dto)
+    {
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(u => u.Email == dto.Email && u.EmailVerificationToken == dto.Otp);
+
+        if (user == null)
+        {
+            return new ApiResponse<string> { Success = false, Message = "Invalid verification code" };
+        }
+
+        if (user.TokenExpiry < DateTime.UtcNow)
+        {
+            return new ApiResponse<string> { Success = false, Message = "Verification code has expired" };
+        }
+
+        user.IsEmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.TokenExpiry = null;
+        await dbContext.SaveChangesAsync();
+
+        return new ApiResponse<string> { Success = true, Message = "Email verified successfully" };
+    }
+
+    public async Task<ApiResponse<string>> ResendOtpAsync(string email)
+    {
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null) return new ApiResponse<string> { Success = false, Message = "User not found" };
+
+        var otp = new Random().Next(100000, 999999).ToString();
+        user.EmailVerificationToken = otp;
+        user.TokenExpiry = DateTime.UtcNow.AddMinutes(15);
+        await dbContext.SaveChangesAsync();
+
+        await emailService.SendEmailAsync(user.Email, "Verify your account", $"Your verification code is: {otp}");
+        return new ApiResponse<string> { Success = true, Message = "Verification code resent" };
     }
 }

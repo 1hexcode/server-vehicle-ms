@@ -21,6 +21,9 @@ public class Users : IHasTimestamps
     [Required]
     public string Address { get; set; }
     public bool isActive { get; set; }
+    public bool IsEmailVerified { get; set; } = false;
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? TokenExpiry { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

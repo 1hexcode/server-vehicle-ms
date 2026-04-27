@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting;
 using server_vehicle_parts_ms.Data;
 using server_vehicle_parts_ms.Data.Entities;
 using server_vehicle_parts_ms.Services.Implementation;
@@ -24,6 +25,16 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? jwtSettings["Key"];
@@ -67,6 +78,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginService>();
@@ -94,8 +106,19 @@ using (var scope = app.Services.CreateScope())
     if (!db.Users.Any(u => u.Role == UserRoles.Admin))
     {
         var email    = Environment.GetEnvironmentVariable("ADMIN_EMAIL")    ?? "admin@local";
-        var password = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? throw new InvalidOperationException("ADMIN_PASSWORD not set");
+        var password = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
         var phone    = Environment.GetEnvironmentVariable("ADMIN_PHONE")    ?? "0000000000";
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            if (!app.Environment.IsDevelopment())
+            {
+                throw new InvalidOperationException("ADMIN_PASSWORD not set");
+            }
+
+            password = "Admin@123";
+            app.Logger.LogWarning("ADMIN_PASSWORD not set. Using the default development admin password.");
+        }
 
         var admin = new Users
         {
@@ -118,15 +141,29 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseHttpsRedirection();
+
+    if (HasHttpsBinding(builder.Configuration))
+    {
+        app.UseHttpsRedirection();
+    }
 }
 
 // Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/", () => Results.Ok(new
+{
+    service = "server_vehicle_parts_ms",
+    status = "ok",
+    docs = "/swagger",
+    health = "/health"
+}));
 
 app.MapControllers();
 
@@ -138,4 +175,20 @@ static string BuildNpgsqlConnectionString(string databaseUrl)
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':', 2);
     return $"Host={uri.Host};Port={uri.Port};Username={userInfo[0]};Password={userInfo[1]};Database={uri.AbsolutePath.TrimStart('/')};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+static bool HasHttpsBinding(IConfiguration configuration)
+{
+    var configuredUrls = configuration[WebHostDefaults.ServerUrlsKey]
+                         ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+                         ?? Environment.GetEnvironmentVariable("DOTNET_URLS");
+
+    if (string.IsNullOrWhiteSpace(configuredUrls))
+    {
+        return false;
+    }
+
+    return configuredUrls
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Any(url => url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
 }
