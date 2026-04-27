@@ -20,6 +20,21 @@ if (!string.IsNullOrEmpty(port))
 
 // Add services to the container.
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins(
+                      "http://localhost:3000",
+                      "https://client-vehicle-ms.vercel.app"
+                  )
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -91,27 +106,32 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
-    if (!db.Users.Any(u => u.Role == UserRoles.Admin))
+    var hasher = new PasswordHasher<Users>();
+
+    void SeedUser(string email, string password, string name, string phone, UserRoles role)
     {
-        var email    = Environment.GetEnvironmentVariable("ADMIN_EMAIL")    ?? "admin@local";
-        var password = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? throw new InvalidOperationException("ADMIN_PASSWORD not set");
-        var phone    = Environment.GetEnvironmentVariable("ADMIN_PHONE")    ?? "0000000000";
-
-        var admin = new Users
+        if (!db.Users.Any(u => u.Email == email))
         {
-            Id          = Guid.NewGuid(),
-            Email       = email,
-            FullName    = "Administrator",
-            Role        = UserRoles.Admin,
-            PhoneNumber = phone,
-            Address     = "-",
-            isActive    = true,
-        };
-        admin.Password = new PasswordHasher<Users>().HashPassword(admin, password);
-
-        db.Users.Add(admin);
-        db.SaveChanges();
+            var user = new Users
+            {
+                Id          = Guid.NewGuid(),
+                Email       = email,
+                FullName    = name,
+                Role        = role,
+                PhoneNumber = phone,
+                Address     = "System Seed",
+                isActive    = true,
+            };
+            user.Password = hasher.HashPassword(user, password);
+            db.Users.Add(user);
+        }
     }
+
+    SeedUser("anurodhprasain0011@gmail.com", "Test@123", "Main Admin", "9800000001", UserRoles.Admin);
+    SeedUser("anurodh.thepaceinfosys@gmail.com", "Test@123", "Demo Staff", "9800000002", UserRoles.Staff);
+    SeedUser("amritanurodh05@gmail.com", "Test@123", "Demo Customer", "9800000003", UserRoles.Customer);
+
+    db.SaveChanges();
 }
 
 // Configure the HTTP request pipeline.
@@ -125,6 +145,7 @@ if (app.Environment.IsDevelopment())
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
