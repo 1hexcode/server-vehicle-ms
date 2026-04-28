@@ -1,8 +1,16 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Hangfire;
+using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using server_vehicle_parts_ms.Data;
 using server_vehicle_parts_ms.Data.Entities;
+using server_vehicle_parts_ms.Helpers;
 using server_vehicle_parts_ms.Services.Implementation;
 using server_vehicle_parts_ms.Services.Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,7 +18,18 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, config) => config
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(port))
@@ -76,6 +95,54 @@ var connectionString = !string.IsNullOrEmpty(databaseUrl)
 builder.Services.AddDbContext<AppDbContext>(
     (options) => { options.UseNpgsql(connectionString); }
 );
+
+var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+var redisConfiguration = !string.IsNullOrEmpty(redisUrl)
+    ? BuildRedisConnectionString(redisUrl)
+    : builder.Configuration.GetConnectionString("Redis");
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfiguration;
+    options.InstanceName = $"vpms:{builder.Environment.EnvironmentName}:";
+});
+builder.Services.AddSingleton<ICacheService, CacheService>();
+
+// Trust X-Forwarded-* from Railway's proxy so RemoteIpAddress reflects the real client.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth-strict", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var key = userId ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+});
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -98,6 +165,33 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<PartRequestService>();
 builder.Services.AddScoped<ReviewService>();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+var emailSettings = new EmailSettings
+{
+    Host       = Environment.GetEnvironmentVariable("SMTP_HOST")       ?? "",
+    Port       = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var p) ? p : 587,
+    User       = Environment.GetEnvironmentVariable("SMTP_USER")       ?? "",
+    Password   = Environment.GetEnvironmentVariable("SMTP_PASS")       ?? "",
+    FromEmail  = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "",
+    FromName   = Environment.GetEnvironmentVariable("SMTP_FROM_NAME")  ?? "Vehicle Parts MS",
+};
+builder.Services.AddSingleton(emailSettings);
+if (!string.IsNullOrEmpty(emailSettings.Host))
+    builder.Services.AddSingleton<IEmailService, MailKitEmailService>();
+else
+    builder.Services.AddSingleton<IEmailService, LoggingOnlyEmailService>();
+builder.Services.AddScoped<EmailJobs>();
+
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(opt => opt.UseNpgsqlConnection(connectionString),
+        new PostgreSqlStorageOptions { SchemaName = "hangfire", PrepareSchemaIfNecessary = true }));
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -135,6 +229,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
+app.UseExceptionHandler();
+app.UseSerilogRequestLogging();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -148,10 +246,32 @@ app.UseSwaggerUI();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
+
+var hangfireUser = Environment.GetEnvironmentVariable("HANGFIRE_DASHBOARD_USER");
+var hangfirePass = Environment.GetEnvironmentVariable("HANGFIRE_DASHBOARD_PASSWORD");
+if (!string.IsNullOrEmpty(hangfireUser) && !string.IsNullOrEmpty(hangfirePass))
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new HangfireDashboardAuthFilter(hangfireUser, hangfirePass) }
+    });
+}
 
 app.MapControllers();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 // Railway/Heroku give DATABASE_URL as postgres://user:pass@host:port/db; Npgsql wants key/value form.
 static string BuildNpgsqlConnectionString(string databaseUrl)
@@ -159,4 +279,13 @@ static string BuildNpgsqlConnectionString(string databaseUrl)
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':', 2);
     return $"Host={uri.Host};Port={uri.Port};Username={userInfo[0]};Password={userInfo[1]};Database={uri.AbsolutePath.TrimStart('/')};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+// REDIS_URL comes as redis://default:password@host:port (or rediss:// for TLS); StackExchange.Redis wants host:port,password=...,ssl=...
+static string BuildRedisConnectionString(string redisUrl)
+{
+    var uri = new Uri(redisUrl);
+    var password = uri.UserInfo.Split(':', 2).ElementAtOrDefault(1) ?? "";
+    var ssl = uri.Scheme == "rediss";
+    return $"{uri.Host}:{uri.Port},password={password},ssl={ssl.ToString().ToLowerInvariant()},abortConnect=false";
 }

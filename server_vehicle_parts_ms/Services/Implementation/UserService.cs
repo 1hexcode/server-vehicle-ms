@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using server_vehicle_parts_ms.Data;
@@ -5,11 +6,12 @@ using server_vehicle_parts_ms.Data.Entities;
 using server_vehicle_parts_ms.Dtos;
 using server_vehicle_parts_ms.Dtos.Request;
 using server_vehicle_parts_ms.Dtos.Response;
+using server_vehicle_parts_ms.Helpers;
 using server_vehicle_parts_ms.Services.Interface;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
-public class UserService(AppDbContext dbContext): IUserService
+public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILogger<UserService> logger): IUserService
 {
     public Task<ApiResponse<UserCreateResponseDto>> CreateStaffAsync(RegisterUserDto dto)
         => CreateWithRoleAsync(dto, UserRoles.Staff);
@@ -105,7 +107,7 @@ public class UserService(AppDbContext dbContext): IUserService
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            logger.LogError(ex, "UserService failure");
             return new ApiResponse<string>
             {
                 Success = false,
@@ -160,6 +162,11 @@ public class UserService(AppDbContext dbContext): IUserService
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
 
+            if (role == UserRoles.Customer)
+            {
+                jobs.Enqueue<EmailJobs>(j => j.SendWelcomeEmailAsync(user.Id, CancellationToken.None));
+            }
+
             return new ApiResponse<UserCreateResponseDto>
             {
                 Success = true,
@@ -178,7 +185,7 @@ public class UserService(AppDbContext dbContext): IUserService
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            logger.LogError(ex, "UserService failure");
             return new ApiResponse<UserCreateResponseDto>
             {
                 Success = false,
