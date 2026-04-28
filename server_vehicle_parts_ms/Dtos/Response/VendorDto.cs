@@ -8,6 +8,9 @@ public class VendorDto
     public string? Email { get; set; }
     public string Phone { get; set; }
     public string? Address { get; set; }
+    public decimal OpeningBalance { get; set; }
+    public decimal DueAmount { get; set; }
+    public decimal TotalPaid { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

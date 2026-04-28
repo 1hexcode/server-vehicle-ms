@@ -24,4 +24,15 @@ public class VendorsController(VendorService service) : ControllerBase
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Disable(Guid id) => Ok(await service.DisableAsync(id));
+
+    // --- Vendor Parts ---
+    [HttpPost("{id:guid}/parts")]
+    public async Task<IActionResult> AddParts(Guid id, [FromBody] VendorAddPartsDto dto) => Ok(await service.AddPartsAsync(id, dto));
+
+    // --- Vendor Payments ---
+    [HttpPost("{id:guid}/payments")]
+    public async Task<IActionResult> CreatePayment(Guid id, [FromBody] VendorPaymentRequestDto dto) => Ok(await service.CreatePaymentAsync(id, dto));
+
+    [HttpGet("{id:guid}/payments")]
+    public async Task<IActionResult> GetPayments(Guid id) => Ok(await service.GetPaymentsAsync(id));
 }

@@ -21,6 +21,7 @@ public class AppDbContext: DbContext
     public DbSet<PartRequests> PartRequests { get; set; }
     public DbSet<Reviews> Reviews { get; set; }
     public DbSet<Notifications> Notifications { get; set; }
+    public DbSet<VendorPayments> VendorPayments { get; set; }
 
     public override int SaveChanges()
     {
@@ -84,6 +85,15 @@ public class AppDbContext: DbContext
             .HasOne(i => i.Vendor)
             .WithMany()
             .HasForeignKey(i => i.VendorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<VendorPayments>()
+            .Property(p => p.Type)
+            .HasConversion<string>();
+        builder.Entity<VendorPayments>()
+            .HasOne(p => p.Vendor)
+            .WithMany(v => v.Payments)
+            .HasForeignKey(p => p.VendorId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<PurchaseInvoiceItems>()

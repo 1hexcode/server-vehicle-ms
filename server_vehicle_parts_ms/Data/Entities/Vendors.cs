@@ -15,7 +15,11 @@ public class Vendors : IHasTimestamps
     [Required]
     public string Phone { get; set; }
     public string? Address { get; set; }
+    public decimal OpeningBalance { get; set; } = 0m;
+    public decimal DueAmount { get; set; } = 0m;
     public bool isActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
+
+    public ICollection<VendorPayments> Payments { get; set; } = new List<VendorPayments>();
 }
