@@ -13,4 +13,5 @@ public class VendorRequestDto
     [Required]
     public string Phone { get; set; }
     public string? Address { get; set; }
+    public decimal OpeningBalance { get; set; } = 0m;
 }
