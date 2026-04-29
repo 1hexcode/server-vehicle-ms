@@ -141,6 +141,7 @@ public class VendorService(AppDbContext db)
             Amount = dto.Amount,
             Type = paymentType,
             AttachmentUrl = dto.AttachmentUrl,
+            ReceiptNo = dto.ReceiptNo,
             Notes = dto.Notes
         };
 
@@ -204,6 +205,7 @@ public class VendorService(AppDbContext db)
         Amount = p.Amount,
         Type = p.Type.ToString(),
         AttachmentUrl = p.AttachmentUrl,
+        ReceiptNo = p.ReceiptNo,
         Notes = p.Notes,
         CreatedAt = p.CreatedAt
     };

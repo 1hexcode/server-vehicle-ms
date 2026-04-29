@@ -6,7 +6,7 @@ using server_vehicle_parts_ms.Services.Interface;
 
 namespace server_vehicle_parts_ms.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/Customers")]
 [ApiController]
 [Authorize(Roles = "Admin,Staff")]
 public class CustomersController(IUserService userService) : ControllerBase
@@ -15,6 +15,27 @@ public class CustomersController(IUserService userService) : ControllerBase
     public async Task<IActionResult> CreateCustomer([FromBody] RegisterUserDto dto)
     {
         var response = await userService.CreateCustomerAsync(dto);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ListCustomers()
+    {
+        var response = await userService.GetAllCustomersAsync();
+        return Ok(response);
+    }
+
+    [HttpPost("with-vehicle")]
+    public async Task<IActionResult> RegisterWithVehicle([FromBody] RegisterCustomerWithVehicleDto dto)
+    {
+        var response = await userService.RegisterCustomerWithVehicleAsync(dto);
+        return Ok(response);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> ToggleStatus(Guid id, [FromBody] ToggleCustomerStatusDto dto)
+    {
+        var response = await userService.ToggleCustomerStatusAsync(id, dto.IsActive);
         return Ok(response);
     }
 
@@ -27,3 +48,4 @@ public class CustomersController(IUserService userService) : ControllerBase
         return Ok(response);
     }
 }
+

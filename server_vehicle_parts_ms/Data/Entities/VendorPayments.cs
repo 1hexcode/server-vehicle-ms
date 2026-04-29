@@ -21,6 +21,8 @@ public class VendorPayments : IHasTimestamps
 
     public string? AttachmentUrl { get; set; }
 
+    public string? ReceiptNo { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

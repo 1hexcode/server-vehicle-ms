@@ -31,6 +31,28 @@ public class AppointmentService(AppDbContext db, NotificationService notificatio
         return new ApiResponse<AppointmentDto> { Success = true, Message = "Appointment booked", Data = await LoadDtoAsync(appt.Id) };
     }
 
+    public async Task<ApiResponse<AppointmentDto>> CreateForStaffAsync(StaffAppointmentRequestDto dto)
+    {
+        var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == dto.VehicleId);
+        if (vehicle == null)
+            return new ApiResponse<AppointmentDto> { Success = false, Message = "Vehicle not found" };
+        if (vehicle.CustomerId != dto.CustomerId)
+            return new ApiResponse<AppointmentDto> { Success = false, Message = "Vehicle does not belong to the selected customer" };
+
+        var appt = new Appointments
+        {
+            CustomerId = dto.CustomerId,
+            VehicleId = vehicle.Id,
+            ServiceType = dto.ServiceType,
+            RequestedAt = dto.RequestedAt,
+            Status = AppointmentStatus.Pending,
+            Notes = dto.Notes,
+        };
+        db.Appointments.Add(appt);
+        await db.SaveChangesAsync();
+        return new ApiResponse<AppointmentDto> { Success = true, Message = "Appointment booked successfully", Data = await LoadDtoAsync(appt.Id) };
+    }
+
     public async Task<ApiResponse<List<AppointmentDto>>> ListAsync(Guid? customerFilter)
     {
         var q = db.Appointments

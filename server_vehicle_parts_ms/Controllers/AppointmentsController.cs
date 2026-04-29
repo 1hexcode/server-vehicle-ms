@@ -22,6 +22,11 @@ public class AppointmentsController(AppointmentService service) : ControllerBase
         return Ok(await service.CreateAsync(id.Value, dto));
     }
 
+    [HttpPost("staff")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> CreateForStaff([FromBody] StaffAppointmentRequestDto dto)
+        => Ok(await service.CreateForStaffAsync(dto));
+
     [HttpGet]
     public async Task<IActionResult> List()
     {

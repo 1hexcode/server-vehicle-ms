@@ -12,6 +12,8 @@ public class VendorPaymentRequestDto
     public string Type { get; set; } = "Cash"; // Cash, Card, Online
 
     public string? AttachmentUrl { get; set; }
+    
+    public string? ReceiptNo { get; set; }
 
     public string? Notes { get; set; }
 }
