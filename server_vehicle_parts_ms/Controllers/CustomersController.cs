@@ -32,6 +32,13 @@ public class CustomersController(IUserService userService) : ControllerBase
         return Ok(response);
     }
 
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> ToggleStatus(Guid id, [FromBody] ToggleCustomerStatusDto dto)
+    {
+        var response = await userService.ToggleCustomerStatusAsync(id, dto.IsActive);
+        return Ok(response);
+    }
+
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -41,3 +48,4 @@ public class CustomersController(IUserService userService) : ControllerBase
         return Ok(response);
     }
 }
+

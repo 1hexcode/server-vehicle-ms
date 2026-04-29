@@ -141,6 +141,31 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         }
     }
 
+    public async Task<ApiResponse<string>> ToggleCustomerStatusAsync(Guid id, bool isActive)
+    {
+        try
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRoles.Customer);
+            if (user == null)
+                return new ApiResponse<string> { Success = false, Message = "Customer not found" };
+
+            user.IsActive = isActive;
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<string>
+            {
+                Success = true,
+                Message = isActive ? "Customer activated successfully" : "Customer disabled successfully",
+                Data = user.Id.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ToggleCustomerStatus failure");
+            return new ApiResponse<string> { Success = false, Message = ex.Message };
+        }
+    }
+
     public async Task<ApiResponse<UserCreateResponseDto>> RegisterCustomerWithVehicleAsync(RegisterCustomerWithVehicleDto dto)
     {
         try

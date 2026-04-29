@@ -13,4 +13,5 @@ public interface IUserService
     public Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllCustomersAsync();
     public Task<ApiResponse<UserCreateResponseDto>> UpdateStaffAsync(Guid id, UpdateStaffDto dto);
     public Task<ApiResponse<string>> DisableStaffAsync(Guid id);
+    public Task<ApiResponse<string>> ToggleCustomerStatusAsync(Guid id, bool isActive);
 }

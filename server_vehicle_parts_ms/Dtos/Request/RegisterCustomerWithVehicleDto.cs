@@ -26,7 +26,6 @@ public class RegisterCustomerWithVehicleDto
     public string VehicleNumber { get; set; } = string.Empty;
 
     [Required]
-    [Required]
     public VehicleType VehicleType { get; set; }
 
     public string? Make { get; set; }
