@@ -71,6 +71,21 @@ public class NotificationService(AppDbContext db)
         return Task.CompletedTask;
     }
 
+    public async Task NotifyAdminsAsync(string title, string? body, NotificationType type)
+    {
+        var admins = await db.Users.Where(u => u.Role == UserRoles.Admin).Select(u => u.Id).ToListAsync();
+        foreach (var adminId in admins)
+        {
+            db.Notifications.Add(new Notifications
+            {
+                UserId = adminId,
+                Title = title,
+                Body = body,
+                Type = type
+            });
+        }
+    }
+
     public static NotificationDto ToDto(Notifications n) => new()
     {
         Id = n.Id,

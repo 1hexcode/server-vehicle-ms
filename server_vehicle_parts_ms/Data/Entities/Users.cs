@@ -20,7 +20,7 @@ public class Users : IHasTimestamps
     public string PhoneNumber { get; set; }
     [Required]
     public string Address { get; set; }
-    public bool isActive { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

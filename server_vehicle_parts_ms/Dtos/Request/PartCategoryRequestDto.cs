@@ -11,4 +11,6 @@ public class PartCategoryRequestDto
     [Required]
     public VehicleType VehicleType { get; set; }
     public Guid? ParentId { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string? Description { get; set; }
 }

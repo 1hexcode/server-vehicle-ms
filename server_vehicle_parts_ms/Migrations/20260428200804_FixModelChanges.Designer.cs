@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using server_vehicle_parts_ms.Data;
@@ -11,9 +12,11 @@ using server_vehicle_parts_ms.Data;
 namespace server_vehicle_parts_ms.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428200804_FixModelChanges")]
+    partial class FixModelChanges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,12 +120,6 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -457,9 +454,6 @@ namespace server_vehicle_parts_ms.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
@@ -474,6 +468,9 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("isActive")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -504,9 +501,6 @@ namespace server_vehicle_parts_ms.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -531,6 +525,9 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<Guid?>("VendorId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("isActive")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -650,9 +647,6 @@ namespace server_vehicle_parts_ms.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -667,6 +661,9 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("isActive")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 

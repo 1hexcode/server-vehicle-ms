@@ -6,6 +6,7 @@ public class VehiclePartRequestDto
 {
     [Required]
     public Guid CategoryId { get; set; }
+    public Guid? VendorId { get; set; }
     [Required]
     [StringLength(150)]
     public string Name { get; set; }
@@ -21,4 +22,5 @@ public class VehiclePartRequestDto
     public int StockQuantity { get; set; }
     [Range(0, int.MaxValue)]
     public int ReorderLevel { get; set; } = 10;
+    public bool IsActive { get; set; } = true;
 }

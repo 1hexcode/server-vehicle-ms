@@ -33,10 +33,35 @@ public class VendorService(AppDbContext db)
 
     public async Task<ApiResponse<List<VendorDto>>> ListAsync()
     {
-        var vendors = await db.Vendors.OrderBy(v => v.Name).ToListAsync();
-        var dtos = new List<VendorDto>();
-        foreach (var v in vendors)
-            dtos.Add(await ToDtoAsync(v));
+        var vendors = await db.Vendors
+            .AsNoTracking()
+            .OrderBy(v => v.Name)
+            .ToListAsync();
+
+        var vendorIds = vendors.Select(v => v.Id).ToList();
+        var paymentSums = await db.VendorPayments
+            .Where(p => vendorIds.Contains(p.VendorId))
+            .GroupBy(p => p.VendorId)
+            .Select(g => new { VendorId = g.Key, TotalPaid = g.Sum(p => p.Amount) })
+            .ToListAsync();
+
+        var paymentMap = paymentSums.ToDictionary(x => x.VendorId, x => x.TotalPaid);
+
+        var dtos = vendors.Select(v => new VendorDto
+        {
+            Id = v.Id,
+            Name = v.Name,
+            ContactPerson = v.ContactPerson,
+            Email = v.Email,
+            Phone = v.Phone,
+            Address = v.Address,
+            OpeningBalance = v.OpeningBalance,
+            DueAmount = v.DueAmount,
+            TotalPaid = paymentMap.GetValueOrDefault(v.Id, 0m),
+            IsActive = v.IsActive,
+            CreatedAt = v.CreatedAt
+        }).ToList();
+
         return new ApiResponse<List<VendorDto>>
         {
             Success = true,
@@ -73,7 +98,7 @@ public class VendorService(AppDbContext db)
         var vendor = await db.Vendors.FirstOrDefaultAsync(v => v.Id == id);
         if (vendor == null)
             return new ApiResponse<string> { Success = false, Message = "Vendor not found" };
-        vendor.isActive = false;
+        vendor.IsActive = false;
         await db.SaveChangesAsync();
         return new ApiResponse<string> { Success = true, Message = "Vendor disabled" };
     }
@@ -167,7 +192,7 @@ public class VendorService(AppDbContext db)
             OpeningBalance = v.OpeningBalance,
             DueAmount = v.DueAmount,
             TotalPaid = totalPaid,
-            IsActive = v.isActive,
+            IsActive = v.IsActive,
             CreatedAt = v.CreatedAt
         };
     }

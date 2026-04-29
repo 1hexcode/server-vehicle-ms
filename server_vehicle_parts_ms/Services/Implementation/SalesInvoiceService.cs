@@ -7,7 +7,7 @@ using server_vehicle_parts_ms.Dtos.Response;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
-public class SalesInvoiceService(AppDbContext db, StockMovementService stock)
+public class SalesInvoiceService(AppDbContext db, StockMovementService stock, NotificationService notifications)
 {
     private const decimal LoyaltyThreshold = 5000m;
     private const decimal LoyaltyRate = 0.10m;
@@ -71,6 +71,16 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock)
                 LineTotal = lineTotal,
             });
             part.StockQuantity -= line.Quantity;
+
+            if (part.StockQuantity <= part.ReorderLevel)
+            {
+                await notifications.NotifyAdminsAsync(
+                    "Low Stock Alert",
+                    $"Part {part.Name} ({part.Sku}) is low on stock. Current quantity: {part.StockQuantity}",
+                    NotificationType.LowStock
+                );
+            }
+
             subtotal += lineTotal;
         }
 

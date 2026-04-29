@@ -43,7 +43,7 @@ public class LoginService
             };
         }
 
-        if (!user.isActive)
+        if (!user.IsActive)
         {
             return new ApiResponse<string>
             {
