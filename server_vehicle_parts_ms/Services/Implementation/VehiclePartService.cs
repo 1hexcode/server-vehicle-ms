@@ -30,6 +30,17 @@ public class VehiclePartService(AppDbContext db)
             IsActive = dto.IsActive
         };
         db.VehicleParts.Add(part);
+
+        // Add the total cost of initial stock to the vendor's due amount
+        if (dto.StockQuantity > 0)
+        {
+            var vendor = await db.Vendors.FindAsync(dto.VendorId);
+            if (vendor != null)
+            {
+                vendor.DueAmount += (dto.CostPrice * dto.StockQuantity);
+            }
+        }
+
         await db.SaveChangesAsync();
         return new ApiResponse<VehiclePartDto> { Success = true, Message = "Part created", Data = await LoadDtoAsync(part.Id) };
     }

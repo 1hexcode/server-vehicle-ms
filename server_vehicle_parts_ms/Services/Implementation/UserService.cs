@@ -43,6 +43,30 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         };
     }
 
+    public async Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllCustomersAsync()
+    {
+        var customers = await dbContext.Users
+            .Where(u => u.Role == UserRoles.Customer)
+            .OrderByDescending(u => u.CreatedAt)
+            .Select(u => new UserCreateResponseDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FullName = u.FullName,
+                PhoneNumber = u.PhoneNumber,
+                Address = u.Address,
+                Role = u.Role.ToString(),
+                IsActive = u.IsActive
+            })
+            .ToListAsync();
+
+        return new ApiResponse<IEnumerable<UserCreateResponseDto>>
+        {
+            Success = true,
+            Data = customers
+        };
+    }
+
     public async Task<ApiResponse<UserCreateResponseDto>> UpdateStaffAsync(Guid id, UpdateStaffDto dto)
     {
         try
@@ -114,6 +138,68 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 Message = ex.Message,
                 Errors = new List<string> { ex.Message }
             };
+        }
+    }
+
+    public async Task<ApiResponse<UserCreateResponseDto>> RegisterCustomerWithVehicleAsync(RegisterCustomerWithVehicleDto dto)
+    {
+        try
+        {
+            if (await dbContext.Users.AnyAsync(u => u.Email == dto.Email))
+            {
+                return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Email already exists" };
+            }
+
+            var passwordHasher = new PasswordHasher<Users>();
+            var user = new Users
+            {
+                Email = dto.Email,
+                FullName = dto.FullName,
+                PhoneNumber = dto.PhoneNumber,
+                Address = dto.Address,
+                IsActive = true,
+                Role = UserRoles.Customer
+            };
+            user.Password = passwordHasher.HashPassword(user, dto.Password ?? "Customer@123");
+
+            dbContext.Users.Add(user);
+            
+            var vehicle = new Vehicles
+            {
+                CustomerId = user.Id,
+                VehicleNumber = dto.VehicleNumber,
+                Type = dto.VehicleType,
+                Make = dto.Make,
+                Model = dto.Model,
+                Year = dto.Year,
+                Color = dto.Color
+            };
+            dbContext.Vehicles.Add(vehicle);
+
+            await dbContext.SaveChangesAsync();
+
+            jobs.Enqueue<EmailJobs>(j => j.SendWelcomeEmailAsync(user.Id, CancellationToken.None));
+
+            return new ApiResponse<UserCreateResponseDto>
+            {
+                Success = true,
+                Message = "Customer and vehicle registered successfully",
+                Data = new UserCreateResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Address = user.Address,
+                    Role = user.Role.ToString(),
+                    IsActive = user.IsActive
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to register customer with vehicle");
+            return new ApiResponse<UserCreateResponseDto> { Success = false, Message = ex.Message };
         }
     }
 

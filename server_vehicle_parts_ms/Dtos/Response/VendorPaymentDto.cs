@@ -7,6 +7,7 @@ public class VendorPaymentDto
     public decimal Amount { get; set; }
     public string Type { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string? ReceiptNo { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }

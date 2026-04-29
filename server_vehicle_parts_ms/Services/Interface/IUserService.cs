@@ -8,7 +8,9 @@ public interface IUserService
 {
     public Task<ApiResponse<UserCreateResponseDto>> CreateStaffAsync(RegisterUserDto dto);
     public Task<ApiResponse<UserCreateResponseDto>> CreateCustomerAsync(RegisterUserDto dto);
+    public Task<ApiResponse<UserCreateResponseDto>> RegisterCustomerWithVehicleAsync(RegisterCustomerWithVehicleDto dto);
     public Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllStaffAsync();
+    public Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllCustomersAsync();
     public Task<ApiResponse<UserCreateResponseDto>> UpdateStaffAsync(Guid id, UpdateStaffDto dto);
     public Task<ApiResponse<string>> DisableStaffAsync(Guid id);
 }
