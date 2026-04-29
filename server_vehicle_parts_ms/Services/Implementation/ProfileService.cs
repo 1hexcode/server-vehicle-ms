@@ -72,7 +72,7 @@ public class ProfileService(AppDbContext db)
         PhoneNumber = u.PhoneNumber,
         Address = u.Address,
         Role = u.Role.ToString(),
-        IsActive = u.isActive,
+        IsActive = u.IsActive,
         CreatedAt = u.CreatedAt
     };
 }

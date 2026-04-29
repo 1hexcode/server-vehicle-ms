@@ -9,9 +9,11 @@ public class PartCategories : IHasTimestamps
     [Required]
     [StringLength(100)]
     public string Name { get; set; }
+    public string? Description { get; set; }
     public VehicleType VehicleType { get; set; }
     public Guid? ParentId { get; set; }
     public PartCategories? Parent { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

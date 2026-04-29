@@ -5,6 +5,8 @@ public class VehiclePartDto
     public Guid Id { get; set; }
     public Guid CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public Guid? VendorId { get; set; }
+    public string? VendorName { get; set; }
     public string Name { get; set; }
     public string Sku { get; set; }
     public string? Description { get; set; }

@@ -45,7 +45,7 @@ public class ReportService(AppDbContext db)
 
     public async Task<ApiResponse<InventoryReportDto>> InventoryAsync()
     {
-        var parts = await db.VehicleParts.Include(p => p.Category).Where(p => p.isActive).ToListAsync();
+        var parts = await db.VehicleParts.Include(p => p.Category).Where(p => p.IsActive).ToListAsync();
         var lowStock = parts
             .Where(p => p.StockQuantity <= p.ReorderLevel)
             .OrderBy(p => p.StockQuantity)

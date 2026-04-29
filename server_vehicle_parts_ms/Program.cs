@@ -101,11 +101,12 @@ var redisConfiguration = !string.IsNullOrEmpty(redisUrl)
     ? BuildRedisConnectionString(redisUrl)
     : builder.Configuration.GetConnectionString("Redis");
 
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConfiguration;
-    options.InstanceName = $"vpms:{builder.Environment.EnvironmentName}:";
-});
+builder.Services.AddDistributedMemoryCache();
+// builder.Services.AddStackExchangeRedisCache(options =>
+// {
+//     options.Configuration = redisConfiguration;
+//     options.InstanceName = $"vpms:{builder.Environment.EnvironmentName}:";
+// });
 builder.Services.AddSingleton<ICacheService, CacheService>();
 
 // Trust X-Forwarded-* from Railway's proxy so RemoteIpAddress reflects the real client.
@@ -214,7 +215,7 @@ using (var scope = app.Services.CreateScope())
                 Role        = role,
                 PhoneNumber = phone,
                 Address     = "System Seed",
-                isActive    = true,
+                IsActive    = true,
             };
             user.Password = hasher.HashPassword(user, password);
             db.Users.Add(user);

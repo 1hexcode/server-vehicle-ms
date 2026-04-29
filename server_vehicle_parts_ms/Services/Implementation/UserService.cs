@@ -32,7 +32,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 PhoneNumber = u.PhoneNumber,
                 Address = u.Address,
                 Role = u.Role.ToString(),
-                IsActive = u.isActive
+                IsActive = u.IsActive
             })
             .ToListAsync();
 
@@ -56,7 +56,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
             user.FullName = dto.FullName;
             user.PhoneNumber = dto.PhoneNumber;
             user.Address = dto.Address;
-            user.isActive = dto.IsActive;
+            user.IsActive = dto.IsActive;
 
             await dbContext.SaveChangesAsync();
 
@@ -72,7 +72,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.isActive
+                    IsActive = user.IsActive
                 }
             };
         }
@@ -100,7 +100,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 return new ApiResponse<string> { Success = false, Message = "User is not staff" };
             }
 
-            user.isActive = false;
+            user.IsActive = false;
             await dbContext.SaveChangesAsync();
 
             return new ApiResponse<string> { Success = true, Message = "Staff disabled" };
@@ -154,7 +154,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 FullName = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,
                 Address = dto.Address,
-                isActive = true,
+                IsActive = true,
                 Role = role
             };
             user.Password = passwordHasher.HashPassword(user, dto.Password);
@@ -179,7 +179,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.isActive
+                    IsActive = user.IsActive
                 }
             };
         }

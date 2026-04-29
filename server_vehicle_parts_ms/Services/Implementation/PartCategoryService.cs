@@ -22,8 +22,10 @@ public class PartCategoryService(AppDbContext db, ICacheService cache)
         var cat = new PartCategories
         {
             Name = dto.Name,
+            Description = dto.Description,
             VehicleType = dto.VehicleType,
-            ParentId = dto.ParentId
+            ParentId = dto.ParentId,
+            IsActive = dto.IsActive
         };
         db.PartCategories.Add(cat);
         await db.SaveChangesAsync();
@@ -35,10 +37,21 @@ public class PartCategoryService(AppDbContext db, ICacheService cache)
     {
         var data = await cache.GetOrSetAsync(ListKey(vehicleType), CacheTtl, async () =>
         {
-            var q = db.PartCategories.AsQueryable();
+            var q = db.PartCategories.AsNoTracking().AsQueryable();
             if (vehicleType.HasValue) q = q.Where(c => c.VehicleType == vehicleType.Value);
-            var items = await q.OrderBy(c => c.Name).ToListAsync();
-            return items.Select(ToDto).ToList();
+            var items = await q.OrderBy(c => c.Name)
+                .Select(c => new PartCategoryDto {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Description = c.Description,
+                    VehicleType = c.VehicleType.ToString(),
+                    ParentId = c.ParentId,
+                    IsActive = c.IsActive,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt
+                })
+                .ToListAsync();
+            return items;
         });
         return new ApiResponse<List<PartCategoryDto>> { Success = true, Data = data };
     }
@@ -65,8 +78,10 @@ public class PartCategoryService(AppDbContext db, ICacheService cache)
             return new ApiResponse<PartCategoryDto> { Success = false, Message = "Parent category not found" };
 
         cat.Name = dto.Name;
+        cat.Description = dto.Description;
         cat.VehicleType = dto.VehicleType;
         cat.ParentId = dto.ParentId;
+        cat.IsActive = dto.IsActive;
         await db.SaveChangesAsync();
         await cache.RemoveAsync(ItemKey(id));
         await InvalidateListsAsync();
@@ -99,8 +114,10 @@ public class PartCategoryService(AppDbContext db, ICacheService cache)
     {
         Id = c.Id,
         Name = c.Name,
+        Description = c.Description,
         VehicleType = c.VehicleType.ToString(),
         ParentId = c.ParentId,
+        IsActive = c.IsActive,
         CreatedAt = c.CreatedAt,
         UpdatedAt = c.UpdatedAt
     };
