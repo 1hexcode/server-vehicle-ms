@@ -21,6 +21,16 @@ public class Users : IHasTimestamps
     [Required]
     public string Address { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // ── Email verification ────────────────────────────────────────────────
+    /// <summary>True once the user has clicked the verification link.</summary>
+    public bool IsEmailVerified { get; set; } = false;
+    /// <summary>Crypto-random token stored plain-text; cleared after use.</summary>
+    public string? EmailVerificationToken { get; set; }
+    /// <summary>UTC expiry for the token (24 h window).</summary>
+    public DateTimeOffset? EmailVerificationTokenExpiry { get; set; }
+    // ─────────────────────────────────────────────────────────────────────
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

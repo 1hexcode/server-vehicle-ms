@@ -178,11 +178,13 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
             var passwordHasher = new PasswordHasher<Users>();
             var user = new Users
             {
-                Email = dto.Email,
-                FullName = dto.FullName,
+                Email       = dto.Email,
+                FullName    = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,
-                Address = dto.Address,
-                IsActive = true,
+                Address     = dto.Address,
+                // Admin-registered customers are trusted — no email verification needed
+                IsActive        = true,
+                IsEmailVerified = true,
                 Role = UserRoles.Customer
             };
             user.Password = passwordHasher.HashPassword(user, dto.Password ?? "Customer@123");
@@ -261,22 +263,19 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
             var passwordHasher = new PasswordHasher<Users>();
             var user = new Users
             {
-                Email = dto.Email,
-                FullName = dto.FullName,
+                Email       = dto.Email,
+                FullName    = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,
-                Address = dto.Address,
-                IsActive = true,
+                Address     = dto.Address,
+                // Admin-created accounts are trusted — bypass email verification
+                IsActive        = true,
+                IsEmailVerified = true,
                 Role = role
             };
             user.Password = passwordHasher.HashPassword(user, dto.Password);
 
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
-
-            if (role == UserRoles.Customer)
-            {
-                jobs.Enqueue<EmailJobs>(j => j.SendWelcomeEmailAsync(user.Id, CancellationToken.None));
-            }
 
             return new ApiResponse<UserCreateResponseDto>
             {
