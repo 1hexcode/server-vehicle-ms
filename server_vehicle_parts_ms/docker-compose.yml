@@ -1,0 +1,20 @@
+services:
+  api:
+    build: .
+    container_name: aspnet-api
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=db;Port=5432;Username=postgres;Password=anurodh;Database=mydb
+  db:
+    image: postgres:17
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: anurodh
+      POSTGRES_DB: mydb
+    ports:
+      - 5432:5432
