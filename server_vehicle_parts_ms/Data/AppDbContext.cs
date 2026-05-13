@@ -56,6 +56,11 @@ public class AppDbContext: DbContext
         builder.Entity<Users>()
             .HasIndex(u => u.PhoneNumber)
             .IsUnique();
+        // Sparse unique index — fast lookup in VerifyEmailAsync, only indexes non-null rows
+        builder.Entity<Users>()
+            .HasIndex(u => u.EmailVerificationToken)
+            .IsUnique()
+            .HasFilter("\"EmailVerificationToken\" IS NOT NULL");
 
         builder.Entity<PartCategories>()
             .Property(c => c.VehicleType)

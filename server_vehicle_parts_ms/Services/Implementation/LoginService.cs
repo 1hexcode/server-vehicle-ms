@@ -43,6 +43,15 @@ public class LoginService
             };
         }
 
+        if (!user.IsEmailVerified)
+        {
+            return new ApiResponse<string>
+            {
+                Success = false,
+                Message = "Please verify your email before logging in. Check your inbox for the verification link."
+            };
+        }
+
         if (!user.IsActive)
         {
             return new ApiResponse<string>

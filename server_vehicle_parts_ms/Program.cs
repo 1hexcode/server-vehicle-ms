@@ -166,17 +166,18 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<PartRequestService>();
 builder.Services.AddScoped<ReviewService>();
+builder.Services.AddScoped<EmailVerificationService>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 var emailSettings = new EmailSettings
 {
-    Host       = Environment.GetEnvironmentVariable("SMTP_HOST")       ?? "",
-    Port       = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var p) ? p : 587,
-    User       = Environment.GetEnvironmentVariable("SMTP_USER")       ?? "",
-    Password   = Environment.GetEnvironmentVariable("SMTP_PASS")       ?? "",
-    FromEmail  = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "",
+    Host       = Environment.GetEnvironmentVariable("SMTP_HOST")       ?? builder.Configuration["Smtp:Host"]     ?? "",
+    Port       = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? builder.Configuration["Smtp:Port"], out var p) ? p : 587,
+    User       = Environment.GetEnvironmentVariable("SMTP_USER")       ?? builder.Configuration["Smtp:User"]     ?? "",
+    Password   = Environment.GetEnvironmentVariable("SMTP_PASS")       ?? builder.Configuration["Smtp:Password"] ?? "",
+    FromEmail  = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? builder.Configuration["Smtp:User"]     ?? "dikshyantadahal10@gmail.com",
     FromName   = Environment.GetEnvironmentVariable("SMTP_FROM_NAME")  ?? "Vehicle Parts MS",
 };
 builder.Services.AddSingleton(emailSettings);
@@ -209,13 +210,15 @@ using (var scope = app.Services.CreateScope())
         {
             var user = new Users
             {
-                Id          = Guid.NewGuid(),
-                Email       = email,
-                FullName    = name,
-                Role        = role,
-                PhoneNumber = phone,
-                Address     = "System Seed",
-                IsActive    = true,
+                Id              = Guid.NewGuid(),
+                Email           = email,
+                FullName        = name,
+                Role            = role,
+                PhoneNumber     = phone,
+                Address         = "System Seed",
+                IsActive        = true,
+                // Seeded accounts skip the email-verification flow
+                IsEmailVerified = true,
             };
             user.Password = hasher.HashPassword(user, password);
             db.Users.Add(user);
