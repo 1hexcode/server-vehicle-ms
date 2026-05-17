@@ -29,8 +29,9 @@ public class AuthController(
     // ────────────────────────────────────────────────────────────────────
     /// <summary>
     /// Registers a new customer account.
-    /// The account is created with <c>IsEmailVerified = false</c> and
-    /// <c>IsActive = false</c>; a verification email is sent automatically.
+    /// The account is created active (<c>IsActive = true</c>) so the
+    /// customer can log in immediately. <c>IsEmailVerified = false</c>
+    /// until the link in the verification email is clicked.
     /// </summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterUserDto dto, CancellationToken ct)
@@ -61,8 +62,8 @@ public class AuthController(
             PhoneNumber = dto.PhoneNumber.Trim(),
             Address     = dto.Address.Trim(),
             Role        = UserRoles.Customer,
-            // Not active / not verified until the email link is clicked
-            IsActive        = false,
+            // Active immediately; email verification is tracked separately
+            IsActive        = true,
             IsEmailVerified = false,
         };
         user.Password = hasher.HashPassword(user, dto.Password);
