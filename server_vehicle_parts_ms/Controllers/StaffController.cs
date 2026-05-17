@@ -14,7 +14,7 @@ public class StaffController(IUserService userService) : ControllerBase
     public async Task<IActionResult> RegisterStaff([FromBody] RegisterUserDto dto)
     {
         var response = await userService.CreateStaffAsync(dto);
-        return Ok(response);
+        return response.Success ? Ok(response) : BadRequest(response);
     }
 
     [HttpGet]
