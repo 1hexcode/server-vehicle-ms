@@ -18,6 +18,15 @@ public class UsersController(IUserService userService): ControllerBase
         return Ok(response);
     }
 
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> SetStatus(Guid id, [FromBody] ToggleCustomerStatusDto dto)
+    {
+        var response = await userService.ToggleUserStatusAsync(id, dto.IsActive);
+        if (response.Success) return Ok(response);
+        return response.Message == "User not found" ? NotFound(response) : BadRequest(response);
+    }
+
     [HttpGet("/health")]
     [AllowAnonymous]
     public IActionResult HealthCheck()
