@@ -141,6 +141,41 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         }
     }
 
+    public async Task<ApiResponse<string>> ToggleUserStatusAsync(Guid id, bool isActive)
+    {
+        try
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+                return new ApiResponse<string> { Success = false, Message = "User not found" };
+
+            if (user.IsActive == isActive)
+            {
+                return new ApiResponse<string>
+                {
+                    Success = true,
+                    Message = isActive ? "User is already active" : "User is already inactive",
+                    Data = user.Id.ToString()
+                };
+            }
+
+            user.IsActive = isActive;
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<string>
+            {
+                Success = true,
+                Message = isActive ? "User activated successfully" : "User deactivated successfully",
+                Data = user.Id.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ToggleUserStatus failure");
+            return new ApiResponse<string> { Success = false, Message = ex.Message };
+        }
+    }
+
     public async Task<ApiResponse<string>> ToggleCustomerStatusAsync(Guid id, bool isActive)
     {
         try
@@ -240,6 +275,14 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 {
                     Success = false,
                     Message = "Email already exists"
+                };
+            }
+            if (await dbContext.Users.AnyAsync(u => u.PhoneNumber == dto.PhoneNumber))
+            {
+                return new ApiResponse<UserCreateResponseDto>
+                {
+                    Success = false,
+                    Message = "Phone number already exists"
                 };
             }
             if (dto.Password != dto.PasswordVerify)
