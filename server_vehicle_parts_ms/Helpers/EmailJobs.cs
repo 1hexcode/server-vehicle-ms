@@ -11,7 +11,7 @@ public class EmailJobs(AppDbContext db, IEmailService email, ILogger<EmailJobs> 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
         {
-            logger.LogWarning("Verification email skipped — user {UserId} not found", userId);
+            logger.LogWarning("Verification email skipped - user {UserId} not found", userId);
             return;
         }
 
@@ -39,7 +39,7 @@ public class EmailJobs(AppDbContext db, IEmailService email, ILogger<EmailJobs> 
                 If you didn't create an account you can safely ignore this email.
               </p>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
-              <p style="font-size:12px;color:#9ca3af">— Vehicle Parts MS</p>
+              <p style="font-size:12px;color:#9ca3af">- Vehicle Parts MS</p>
             </div>
             """;
 
@@ -53,7 +53,7 @@ public class EmailJobs(AppDbContext db, IEmailService email, ILogger<EmailJobs> 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null)
         {
-            logger.LogWarning("Welcome email skipped — user {UserId} not found", userId);
+            logger.LogWarning("Welcome email skipped - user {UserId} not found", userId);
             return;
         }
 
@@ -64,7 +64,7 @@ public class EmailJobs(AppDbContext db, IEmailService email, ILogger<EmailJobs> 
               <p>Your email has been confirmed and your <strong>Vehicle Parts MS</strong> account is now active.
                  You can sign in at any time using your email
                  <a href="mailto:{System.Net.WebUtility.HtmlEncode(user.Email)}">{System.Net.WebUtility.HtmlEncode(user.Email)}</a>.</p>
-              <p style="font-size:13px;color:#6b7280">— Vehicle Parts MS</p>
+              <p style="font-size:13px;color:#6b7280">- Vehicle Parts MS</p>
             </div>
             """;
 
