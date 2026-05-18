@@ -236,6 +236,7 @@ using (var scope = app.Services.CreateScope())
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
+app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())
 {

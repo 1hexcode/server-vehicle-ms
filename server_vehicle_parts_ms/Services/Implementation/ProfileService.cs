@@ -73,6 +73,7 @@ public class ProfileService(AppDbContext db)
         Address = u.Address,
         Role = u.Role.ToString(),
         IsActive = u.IsActive,
-        CreatedAt = u.CreatedAt
+        CreatedAt = u.CreatedAt,
+        ProfilePictureUrl = u.ProfilePictureUrl
     };
 }

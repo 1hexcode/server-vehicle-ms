@@ -21,6 +21,7 @@ public class Users : IHasTimestamps
     [Required]
     public string Address { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? ProfilePictureUrl { get; set; }
 
     // ── Email verification ────────────────────────────────────────────────
     /// <summary>True once the user has clicked the verification link.</summary>

@@ -10,4 +10,5 @@ public class ProfileDto
     public string Role { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public string? ProfilePictureUrl { get; set; }
 }

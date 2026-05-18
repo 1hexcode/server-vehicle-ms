@@ -1,4 +1,5 @@
 using Hangfire;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using server_vehicle_parts_ms.Data;
@@ -8,6 +9,7 @@ using server_vehicle_parts_ms.Dtos.Request;
 using server_vehicle_parts_ms.Dtos.Response;
 using server_vehicle_parts_ms.Helpers;
 using server_vehicle_parts_ms.Services.Interface;
+using System.IO;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
@@ -32,7 +34,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 PhoneNumber = u.PhoneNumber,
                 Address = u.Address,
                 Role = u.Role.ToString(),
-                IsActive = u.IsActive
+                IsActive = u.IsActive,
+                ProfilePictureUrl = u.ProfilePictureUrl
             })
             .ToListAsync();
 
@@ -56,7 +59,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 PhoneNumber = u.PhoneNumber,
                 Address = u.Address,
                 Role = u.Role.ToString(),
-                IsActive = u.IsActive
+                IsActive = u.IsActive,
+                ProfilePictureUrl = u.ProfilePictureUrl
             })
             .ToListAsync();
 
@@ -96,7 +100,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    ProfilePictureUrl = user.ProfilePictureUrl
                 }
             };
         }
@@ -201,6 +206,131 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         }
     }
 
+    public async Task<ApiResponse<UserCreateResponseDto>> UpdateCustomerProfileAsync(Guid id, ProfileUpdateDto dto)
+    {
+        try
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRoles.Customer);
+            if (user == null)
+            {
+                return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Customer not found" };
+            }
+
+            if (user.PhoneNumber != dto.PhoneNumber &&
+                await dbContext.Users.AnyAsync(u => u.PhoneNumber == dto.PhoneNumber && u.Id != id))
+            {
+                return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Phone number already in use" };
+            }
+
+            user.FullName = dto.FullName;
+            user.PhoneNumber = dto.PhoneNumber;
+            user.Address = dto.Address;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<UserCreateResponseDto>
+            {
+                Success = true,
+                Message = "Profile updated successfully",
+                Data = new UserCreateResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    PhoneNumber = user.PhoneNumber,
+                    Address = user.Address,
+                    Role = user.Role.ToString(),
+                    IsActive = user.IsActive,
+                    ProfilePictureUrl = user.ProfilePictureUrl
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "UpdateCustomerProfileAsync failure");
+            return new ApiResponse<UserCreateResponseDto> { Success = false, Message = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse<string>> UploadProfilePictureAsync(Guid id, IFormFile file)
+    {
+        try
+        {
+            var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == UserRoles.Customer);
+            if (user == null)
+            {
+                return new ApiResponse<string> { Success = false, Message = "Customer not found" };
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return new ApiResponse<string> { Success = false, Message = "No file uploaded or file is empty" };
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return new ApiResponse<string> 
+                { 
+                    Success = false, 
+                    Message = "Invalid file type. Only JPG, JPEG, PNG, GIF, and WEBP are allowed." 
+                };
+            }
+
+            var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var targetFolder = Path.Combine(webRootPath, "uploads", "profile-pictures");
+            if (!Directory.Exists(targetFolder))
+            {
+                Directory.CreateDirectory(targetFolder);
+            }
+
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
+                var relativePath = user.ProfilePictureUrl.TrimStart('/');
+                var oldFilePath = Path.Combine(webRootPath, relativePath);
+                if (File.Exists(oldFilePath))
+                {
+                    try
+                    {
+                        File.Delete(oldFilePath);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        logger.LogWarning(deleteEx, "Failed to delete old profile picture file: {Path}", oldFilePath);
+                    }
+                }
+            }
+
+            var fileName = $"{id}_profile_{DateTime.UtcNow.Ticks}{extension}";
+            var filePath = Path.Combine(targetFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var dbPath = $"/uploads/profile-pictures/{fileName}";
+            user.ProfilePictureUrl = dbPath;
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await dbContext.SaveChangesAsync();
+
+            return new ApiResponse<string>
+            {
+                Success = true,
+                Message = "Profile picture uploaded successfully",
+                Data = dbPath
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "UploadProfilePictureAsync failure");
+            return new ApiResponse<string> { Success = false, Message = ex.Message };
+        }
+    }
+
     public async Task<ApiResponse<UserCreateResponseDto>> RegisterCustomerWithVehicleAsync(RegisterCustomerWithVehicleDto dto)
     {
         try
@@ -254,7 +384,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    ProfilePictureUrl = user.ProfilePictureUrl
                 }
             };
         }
@@ -332,7 +463,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    ProfilePictureUrl = user.ProfilePictureUrl
                 }
             };
         }
