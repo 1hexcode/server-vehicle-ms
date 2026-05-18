@@ -24,14 +24,7 @@ public class ProfileService(AppDbContext db)
         if (user == null)
             return new ApiResponse<ProfileDto> { Success = false, Message = "User not found" };
 
-        if (user.PhoneNumber != dto.PhoneNumber &&
-            await db.Users.AnyAsync(u => u.PhoneNumber == dto.PhoneNumber && u.Id != userId))
-        {
-            return new ApiResponse<ProfileDto> { Success = false, Message = "Phone number already in use" };
-        }
-
         user.FullName = dto.FullName;
-        user.PhoneNumber = dto.PhoneNumber;
         user.Address = dto.Address;
         await db.SaveChangesAsync();
 

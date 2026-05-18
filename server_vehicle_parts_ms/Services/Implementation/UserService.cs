@@ -13,7 +13,7 @@ using System.IO;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
-public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILogger<UserService> logger): IUserService
+public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILogger<UserService> logger, IImageUploadService imageUploadService): IUserService
 {
     public Task<ApiResponse<UserCreateResponseDto>> CreateStaffAsync(RegisterUserDto dto)
         => CreateWithRoleAsync(dto, UserRoles.Staff);
@@ -216,14 +216,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Customer not found" };
             }
 
-            if (user.PhoneNumber != dto.PhoneNumber &&
-                await dbContext.Users.AnyAsync(u => u.PhoneNumber == dto.PhoneNumber && u.Id != id))
-            {
-                return new ApiResponse<UserCreateResponseDto> { Success = false, Message = "Phone number already in use" };
-            }
-
             user.FullName = dto.FullName;
-            user.PhoneNumber = dto.PhoneNumber;
             user.Address = dto.Address;
             user.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -279,40 +272,20 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 };
             }
 
-            var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var targetFolder = Path.Combine(webRootPath, "uploads", "profile-pictures");
-            if (!Directory.Exists(targetFolder))
+            // Upload new image
+            var uploadResult = await imageUploadService.UploadAsync(file, "profile-pictures");
+
+            // Delete old image if it exists and we have a way to track its public ID
+            // For now, if the profilePictureUrl exists and it's a local path, we might need custom logic to find its public ID
+            // In a full Cloudinary implementation, you'd store the public_id in the database alongside the URL.
+            // As a simple workaround for the local provider, the url and public_id might be different or we might just clean up local files manually.
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl) && user.ProfilePictureUrl.StartsWith("/uploads/"))
             {
-                Directory.CreateDirectory(targetFolder);
+                 var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", user.ProfilePictureUrl.TrimStart('/'));
+                 await imageUploadService.DeleteAsync(oldFilePath);
             }
 
-            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
-            {
-                var relativePath = user.ProfilePictureUrl.TrimStart('/');
-                var oldFilePath = Path.Combine(webRootPath, relativePath);
-                if (File.Exists(oldFilePath))
-                {
-                    try
-                    {
-                        File.Delete(oldFilePath);
-                    }
-                    catch (Exception deleteEx)
-                    {
-                        logger.LogWarning(deleteEx, "Failed to delete old profile picture file: {Path}", oldFilePath);
-                    }
-                }
-            }
-
-            var fileName = $"{id}_profile_{DateTime.UtcNow.Ticks}{extension}";
-            var filePath = Path.Combine(targetFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var dbPath = $"/uploads/profile-pictures/{fileName}";
-            user.ProfilePictureUrl = dbPath;
+            user.ProfilePictureUrl = uploadResult.Url;
             user.UpdatedAt = DateTimeOffset.UtcNow;
 
             await dbContext.SaveChangesAsync();
@@ -321,7 +294,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
             {
                 Success = true,
                 Message = "Profile picture uploaded successfully",
-                Data = dbPath
+                Data = uploadResult.Url
             };
         }
         catch (Exception ex)

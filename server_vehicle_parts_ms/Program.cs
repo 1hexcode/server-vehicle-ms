@@ -168,6 +168,15 @@ builder.Services.AddScoped<PartRequestService>();
 builder.Services.AddScoped<ReviewService>();
 builder.Services.AddScoped<EmailVerificationService>();
 
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CLOUDINARY_URL")))
+{
+    builder.Services.AddScoped<IImageUploadService, CloudinaryImageUploadService>();
+}
+else
+{
+    builder.Services.AddScoped<IImageUploadService, LocalImageUploadService>();
+}
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
