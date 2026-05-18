@@ -217,7 +217,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 FullName    = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,
                 Address     = dto.Address,
-                // Admin-registered customers are trusted — no email verification needed
+                // Admin-registered customers are trusted - no email verification needed
                 IsActive        = true,
                 IsEmailVerified = true,
                 Role = UserRoles.Customer
@@ -310,7 +310,7 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 FullName    = dto.FullName,
                 PhoneNumber = dto.PhoneNumber,
                 Address     = dto.Address,
-                // Admin-created accounts are trusted — bypass email verification
+                // Admin-created accounts are trusted - bypass email verification
                 IsActive        = true,
                 IsEmailVerified = true,
                 Role = role

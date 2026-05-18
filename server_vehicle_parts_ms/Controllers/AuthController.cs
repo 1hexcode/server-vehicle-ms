@@ -113,7 +113,7 @@ public class AuthController(
     public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationDto dto, CancellationToken ct)
     {
         var result = await verificationService.ResendVerificationAsync(dto.Email, ct);
-        // Always 200 regardless — anti-enumeration
+        // Always 200 regardless - anti-enumeration
         return Ok(result);
     }
 }

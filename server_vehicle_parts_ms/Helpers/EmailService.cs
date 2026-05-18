@@ -53,7 +53,7 @@ public class LoggingOnlyEmailService(ILogger<LoggingOnlyEmailService> logger) : 
 {
     public Task SendAsync(string toEmail, string toName, string subject, string htmlBody, string? plainTextBody = null, CancellationToken ct = default)
     {
-        logger.LogInformation("[EMAIL DISABLED — would send] to={To} subject={Subject}", toEmail, subject);
+        logger.LogInformation("[EMAIL DISABLED - would send] to={To} subject={Subject}", toEmail, subject);
         return Task.CompletedTask;
     }
 }

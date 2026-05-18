@@ -7,7 +7,7 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         logger.LogError(exception,
-            "Unhandled exception on {Method} {Path} — {Message}",
+            "Unhandled exception on {Method} {Path} - {Message}",
             httpContext.Request.Method, httpContext.Request.Path, exception.Message);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;

@@ -24,7 +24,7 @@ public class CacheService(IDistributedCache cache, ILogger<CacheService> logger)
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Cache GET failed for {Key} — falling through", key);
+            logger.LogWarning(ex, "Cache GET failed for {Key} - falling through", key);
             return default;
         }
     }
@@ -39,7 +39,7 @@ public class CacheService(IDistributedCache cache, ILogger<CacheService> logger)
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Cache SET failed for {Key} — ignoring", key);
+            logger.LogWarning(ex, "Cache SET failed for {Key} - ignoring", key);
         }
     }
 
@@ -51,7 +51,7 @@ public class CacheService(IDistributedCache cache, ILogger<CacheService> logger)
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Cache REMOVE failed for {Key} — ignoring", key);
+            logger.LogWarning(ex, "Cache REMOVE failed for {Key} - ignoring", key);
         }
     }
 
