@@ -11,7 +11,10 @@ public class SalesInvoiceDto
     public Guid CreatedByUserId { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Discount { get; set; }
+    public decimal DiscountRate { get; set; }
+    public decimal ServiceCharge { get; set; }
     public decimal Tax { get; set; }
+    public decimal TaxRate { get; set; }
     public decimal Total { get; set; }
     public string Status { get; set; }
     public DateTimeOffset? IssuedAt { get; set; }

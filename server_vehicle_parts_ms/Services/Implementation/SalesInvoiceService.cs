@@ -55,7 +55,9 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
             Status = SalesInvoiceStatus.Issued,
             IssuedAt = DateTimeOffset.UtcNow,
             DueAt = dto.DueAt,
-            Tax = dto.Tax,
+            TaxRate = dto.TaxRate,
+            DiscountRate = dto.DiscountRate,
+            ServiceCharge = dto.ServiceCharge,
         };
 
         decimal subtotal = 0;
@@ -85,8 +87,9 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
         }
 
         invoice.Subtotal = subtotal;
-        invoice.Discount = subtotal > LoyaltyThreshold ? Math.Round(subtotal * LoyaltyRate, 2) : 0m;
-        invoice.Total = subtotal - invoice.Discount + dto.Tax;
+        invoice.Discount = Math.Round(subtotal * (invoice.DiscountRate / 100m), 2);
+        invoice.Tax = Math.Round((subtotal + invoice.ServiceCharge) * (invoice.TaxRate / 100m), 2);
+        invoice.Total = subtotal - invoice.Discount + invoice.ServiceCharge + invoice.Tax;
 
         db.SalesInvoices.Add(invoice);
 
@@ -165,7 +168,10 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
         CreatedByUserId = i.CreatedByUserId,
         Subtotal = i.Subtotal,
         Discount = i.Discount,
+        DiscountRate = i.DiscountRate,
+        ServiceCharge = i.ServiceCharge,
         Tax = i.Tax,
+        TaxRate = i.TaxRate,
         Total = i.Total,
         Status = i.Status.ToString(),
         IssuedAt = i.IssuedAt,

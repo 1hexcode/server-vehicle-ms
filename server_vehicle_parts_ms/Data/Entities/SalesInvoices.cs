@@ -16,7 +16,10 @@ public class SalesInvoices : IHasTimestamps
     public Guid CreatedByUserId { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Discount { get; set; }
+    public decimal DiscountRate { get; set; }
+    public decimal ServiceCharge { get; set; }
     public decimal Tax { get; set; }
+    public decimal TaxRate { get; set; }
     public decimal Total { get; set; }
     public SalesInvoiceStatus Status { get; set; } = SalesInvoiceStatus.Draft;
     public DateTimeOffset? IssuedAt { get; set; }

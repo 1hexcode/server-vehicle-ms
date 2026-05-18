@@ -7,8 +7,12 @@ public class SalesInvoiceRequestDto
     [Required]
     public Guid CustomerId { get; set; }
     public Guid? VehicleId { get; set; }
+    [Range(0, 100)]
+    public decimal TaxRate { get; set; }
+    [Range(0, 100)]
+    public decimal DiscountRate { get; set; }
     [Range(0, double.MaxValue)]
-    public decimal Tax { get; set; }
+    public decimal ServiceCharge { get; set; }
     public DateTimeOffset? DueAt { get; set; }
     [Required]
     [MinLength(1)]

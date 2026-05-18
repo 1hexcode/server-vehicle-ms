@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using server_vehicle_parts_ms.Data;
@@ -11,13 +12,15 @@ using server_vehicle_parts_ms.Data;
 namespace server_vehicle_parts_ms.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518151739_SyncModels")]
+    partial class SyncModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -461,12 +464,6 @@ namespace server_vehicle_parts_ms.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("EmailVerificationToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("EmailVerificationTokenExpiry")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -475,18 +472,12 @@ namespace server_vehicle_parts_ms.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsEmailVerified")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("text");
 
                     b.Property<string>("Role")
@@ -500,10 +491,6 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
-
-                    b.HasIndex("EmailVerificationToken")
-                        .IsUnique()
-                        .HasFilter("\"EmailVerificationToken\" IS NOT NULL");
 
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
