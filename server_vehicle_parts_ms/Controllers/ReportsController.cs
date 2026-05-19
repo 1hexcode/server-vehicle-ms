@@ -15,4 +15,7 @@ public class ReportsController(ReportService service) : ControllerBase
 
     [HttpGet("inventory")]
     public async Task<IActionResult> Inventory() => Ok(await service.InventoryAsync());
+
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> Dashboard() => Ok(await service.GetDashboardStatsAsync());
 }
