@@ -25,6 +25,15 @@ public class CustomersController(IUserService userService) : ControllerBase
         return Ok(response);
     }
 
+    // Case-insensitive contains match. Any combination of params can be supplied;
+    // they're AND-combined. Returns an empty data array when nothing matches.
+    [HttpGet("search")]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? name,
+        [FromQuery] string? phone,
+        [FromQuery] string? vehicleNo)
+        => Ok(await userService.SearchCustomersAsync(name, phone, vehicleNo));
+
     [HttpPost("with-vehicle")]
     public async Task<IActionResult> RegisterWithVehicle([FromBody] RegisterCustomerWithVehicleDto dto)
     {

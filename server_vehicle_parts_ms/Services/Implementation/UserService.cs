@@ -69,6 +69,45 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         };
     }
 
+    public async Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> SearchCustomersAsync(string? name, string? phone, string? vehicleNo)
+    {
+        var q = dbContext.Users.Where(u => u.Role == UserRoles.Customer);
+
+        if (!string.IsNullOrWhiteSpace(name))
+            q = q.Where(u => EF.Functions.ILike(u.FullName, $"%{name.Trim()}%"));
+
+        if (!string.IsNullOrWhiteSpace(phone))
+            q = q.Where(u => EF.Functions.ILike(u.PhoneNumber, $"%{phone.Trim()}%"));
+
+        if (!string.IsNullOrWhiteSpace(vehicleNo))
+        {
+            var vn = vehicleNo.Trim();
+            q = q.Where(u => dbContext.Vehicles.Any(v =>
+                v.CustomerId == u.Id && EF.Functions.ILike(v.VehicleNumber, $"%{vn}%")));
+        }
+
+        var customers = await q
+            .OrderByDescending(u => u.CreatedAt)
+            .Select(u => new UserCreateResponseDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FullName = u.FullName,
+                PhoneNumber = u.PhoneNumber,
+                Address = u.Address,
+                Role = u.Role.ToString(),
+                IsActive = u.IsActive,
+                LoyaltyPoints = u.LoyaltyPoints
+            })
+            .ToListAsync();
+
+        return new ApiResponse<IEnumerable<UserCreateResponseDto>>
+        {
+            Success = true,
+            Data = customers
+        };
+    }
+
     public async Task<ApiResponse<UserCreateResponseDto>> UpdateStaffAsync(Guid id, UpdateStaffDto dto)
     {
         try
