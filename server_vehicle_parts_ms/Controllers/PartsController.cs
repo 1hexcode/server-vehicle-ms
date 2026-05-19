@@ -14,11 +14,11 @@ public class PartsController(VehiclePartService service) : ControllerBase
     public async Task<IActionResult> Create([FromBody] VehiclePartRequestDto dto) => Ok(await service.CreateAsync(dto));
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
+    [AllowAnonymous]
     public async Task<IActionResult> List() => Ok(await service.ListAsync());
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin,Staff")]
+    [AllowAnonymous]
     public async Task<IActionResult> Get(Guid id) => Ok(await service.GetAsync(id));
 
     [HttpPut("{id:guid}")]
