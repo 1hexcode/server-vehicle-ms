@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -17,6 +19,10 @@ public class EmailSettings
     public string Password { get; set; } = "";
     public string FromEmail { get; set; } = "";
     public string FromName { get; set; } = "";
+
+    // Resend HTTP API key. When set, ResendEmailService is preferred over SMTP because
+    // Railway's free plans block outbound SMTP but allow plain HTTPS.
+    public string ResendApiKey { get; set; } = "";
 }
 
 public class MailKitEmailService(EmailSettings settings, ILogger<MailKitEmailService> logger) : IEmailService
@@ -56,4 +62,50 @@ public class LoggingOnlyEmailService(ILogger<LoggingOnlyEmailService> logger) : 
         logger.LogInformation("[EMAIL DISABLED - would send] to={To} subject={Subject}", toEmail, subject);
         return Task.CompletedTask;
     }
+}
+
+// Sends via Resend's HTTP API (https://resend.com). One POST to api.resend.com:443,
+// so works from environments that block outbound SMTP (Railway free plans, etc).
+public class ResendEmailService(IHttpClientFactory httpClientFactory, EmailSettings settings, ILogger<ResendEmailService> logger) : IEmailService
+{
+    private const string ResendEndpoint = "https://api.resend.com/emails";
+
+    public async Task SendAsync(string toEmail, string toName, string subject, string htmlBody, string? plainTextBody = null, CancellationToken ct = default)
+    {
+        var fromEmail = string.IsNullOrWhiteSpace(settings.FromEmail) ? "onboarding@resend.dev" : settings.FromEmail;
+        var fromName = string.IsNullOrWhiteSpace(settings.FromName) ? "Vehicle Parts MS" : settings.FromName;
+        var fromHeader = $"{fromName} <{fromEmail}>";
+
+        var payload = new ResendSendRequest(
+            From: fromHeader,
+            To: new[] { toEmail },
+            Subject: subject,
+            Html: htmlBody,
+            Text: plainTextBody);
+
+        var client = httpClientFactory.CreateClient(nameof(ResendEmailService));
+        using var request = new HttpRequestMessage(HttpMethod.Post, ResendEndpoint)
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.Add("Authorization", $"Bearer {settings.ResendApiKey}");
+
+        using var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            // Read the body so the retry-attempt log carries Resend's error text instead of a bare status code.
+            var body = await response.Content.ReadAsStringAsync(ct);
+            logger.LogError("Resend send failed ({Status}) for {Email}: {Body}", (int)response.StatusCode, toEmail, body);
+            throw new InvalidOperationException($"Resend API returned {(int)response.StatusCode}: {body}");
+        }
+
+        logger.LogInformation("Sent email to {Email} subject {Subject} via Resend", toEmail, subject);
+    }
+
+    private sealed record ResendSendRequest(
+        [property: JsonPropertyName("from")] string From,
+        [property: JsonPropertyName("to")] string[] To,
+        [property: JsonPropertyName("subject")] string Subject,
+        [property: JsonPropertyName("html")] string Html,
+        [property: JsonPropertyName("text")] string? Text);
 }
