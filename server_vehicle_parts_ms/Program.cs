@@ -179,21 +179,15 @@ builder.Services.AddProblemDetails();
 
 var emailSettings = new EmailSettings
 {
-    Host         = Environment.GetEnvironmentVariable("SMTP_HOST")       ?? builder.Configuration["Smtp:Host"]     ?? "",
-    Port         = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? builder.Configuration["Smtp:Port"], out var p) ? p : 587,
-    User         = Environment.GetEnvironmentVariable("SMTP_USER")       ?? builder.Configuration["Smtp:User"]     ?? "",
-    Password     = Environment.GetEnvironmentVariable("SMTP_PASS")       ?? builder.Configuration["Smtp:Password"] ?? "",
-    FromEmail    = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? builder.Configuration["Smtp:User"]     ?? "dikshyantadahal10@gmail.com",
-    FromName     = Environment.GetEnvironmentVariable("SMTP_FROM_NAME")  ?? "Vehicle Parts MS",
-    ResendApiKey = Environment.GetEnvironmentVariable("RESEND_API_KEY")  ?? builder.Configuration["Resend:ApiKey"] ?? "",
+    Host      = Environment.GetEnvironmentVariable("SMTP_HOST")       ?? builder.Configuration["Smtp:Host"]     ?? "",
+    Port      = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? builder.Configuration["Smtp:Port"], out var p) ? p : 587,
+    User      = Environment.GetEnvironmentVariable("SMTP_USER")       ?? builder.Configuration["Smtp:User"]     ?? "",
+    Password  = Environment.GetEnvironmentVariable("SMTP_PASS")       ?? builder.Configuration["Smtp:Password"] ?? "",
+    FromEmail = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? builder.Configuration["Smtp:User"]     ?? "dikshyantadahal10@gmail.com",
+    FromName  = Environment.GetEnvironmentVariable("SMTP_FROM_NAME")  ?? "Vehicle Parts MS",
 };
 builder.Services.AddSingleton(emailSettings);
-builder.Services.AddHttpClient();
-
-// Prefer Resend (HTTPS, works through SMTP-blocking egress) → SMTP fallback → logging-only no-op.
-if (!string.IsNullOrEmpty(emailSettings.ResendApiKey))
-    builder.Services.AddSingleton<IEmailService, ResendEmailService>();
-else if (!string.IsNullOrEmpty(emailSettings.Host))
+if (!string.IsNullOrEmpty(emailSettings.Host))
     builder.Services.AddSingleton<IEmailService, MailKitEmailService>();
 else
     builder.Services.AddSingleton<IEmailService, LoggingOnlyEmailService>();
