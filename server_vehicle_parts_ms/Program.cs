@@ -154,6 +154,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<LoginService>();
 builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<VendorService>();
 builder.Services.AddScoped<PartCategoryService>();
 builder.Services.AddScoped<VehiclePartService>();

@@ -22,6 +22,7 @@ public class AppDbContext: DbContext
     public DbSet<Reviews> Reviews { get; set; }
     public DbSet<Notifications> Notifications { get; set; }
     public DbSet<VendorPayments> VendorPayments { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
 
     public override int SaveChanges()
     {
