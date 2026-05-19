@@ -15,6 +15,7 @@ public class VehiclePartDto
     public int StockQuantity { get; set; }
     public int ReorderLevel { get; set; }
     public bool IsActive { get; set; }
+    public string? ImageUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 }

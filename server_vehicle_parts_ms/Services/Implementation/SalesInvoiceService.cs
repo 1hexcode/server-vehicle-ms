@@ -1,16 +1,22 @@
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using server_vehicle_parts_ms.Data;
 using server_vehicle_parts_ms.Data.Entities;
 using server_vehicle_parts_ms.Dtos;
 using server_vehicle_parts_ms.Dtos.Request;
 using server_vehicle_parts_ms.Dtos.Response;
+using server_vehicle_parts_ms.Helpers;
 
 namespace server_vehicle_parts_ms.Services.Implementation;
 
-public class SalesInvoiceService(AppDbContext db, StockMovementService stock, NotificationService notifications)
+public class SalesInvoiceService(AppDbContext db, StockMovementService stock, NotificationService notifications, IBackgroundJobClient jobs)
 {
     private const decimal LoyaltyThreshold = 5000m;
     private const decimal LoyaltyRate = 0.10m;
+    // Earn rule: 1 loyalty point per Rs. 100 of invoice subtotal (rounded down).
+    private const decimal PointsPerCurrencyUnit = 100m;
+
+    private static int PointsEarnedFor(decimal subtotal) => (int)Math.Floor(subtotal / PointsPerCurrencyUnit);
 
     public async Task<ApiResponse<SalesInvoiceDto>> CreateAsync(SalesInvoiceRequestDto dto, Guid createdBy)
     {
@@ -70,6 +76,7 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
                 UnitPrice = line.UnitPrice,
                 LineTotal = lineTotal,
             });
+            var wasAboveReorder = part.StockQuantity > part.ReorderLevel;
             part.StockQuantity -= line.Quantity;
 
             if (part.StockQuantity <= part.ReorderLevel)
@@ -79,6 +86,14 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
                     $"Part {part.Name} ({part.Sku}) is low on stock. Current quantity: {part.StockQuantity}",
                     NotificationType.LowStock
                 );
+
+                // Only fire an instant email when the sale is what pushed it across the threshold,
+                // so admins don't get repeat alerts for every line of every sale once it's already low.
+                if (wasAboveReorder)
+                {
+                    var partId = part.Id;
+                    jobs.Enqueue<ReminderJobs>(j => j.SendLowStockInstantAlertAsync(partId, CancellationToken.None));
+                }
             }
 
             subtotal += lineTotal;
@@ -87,6 +102,8 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
         invoice.Subtotal = subtotal;
         invoice.Discount = subtotal > LoyaltyThreshold ? Math.Round(subtotal * LoyaltyRate, 2) : 0m;
         invoice.Total = subtotal - invoice.Discount + dto.Tax;
+
+        customer.LoyaltyPoints += PointsEarnedFor(subtotal);
 
         db.SalesInvoices.Add(invoice);
 
@@ -123,6 +140,72 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
         return new ApiResponse<SalesInvoiceDto> { Success = true, Data = ToDto(invoice) };
     }
 
+    public async Task<ApiResponse<string>> SendEmailAsync(Guid id, string? toEmailOverride)
+    {
+        var row = await db.SalesInvoices
+            .Where(i => i.Id == id)
+            .Select(i => new { i.InvoiceNumber, i.Status, CustomerEmail = i.Customer != null ? i.Customer.Email : null })
+            .FirstOrDefaultAsync();
+        if (row == null)
+            return new ApiResponse<string> { Success = false, Message = "Invoice not found" };
+        if (row.Status == SalesInvoiceStatus.Void)
+            return new ApiResponse<string> { Success = false, Message = "Cannot email a voided invoice" };
+
+        var recipient = !string.IsNullOrWhiteSpace(toEmailOverride) ? toEmailOverride!.Trim() : row.CustomerEmail;
+        if (string.IsNullOrWhiteSpace(recipient))
+            return new ApiResponse<string>
+            {
+                Success = false,
+                Message = "Customer has no email on file; provide a toEmail override"
+            };
+
+        jobs.Enqueue<EmailJobs>(j => j.SendInvoiceEmailAsync(id, recipient, CancellationToken.None));
+        return new ApiResponse<string>
+        {
+            Success = true,
+            Message = $"Invoice {row.InvoiceNumber} queued for delivery to {recipient}"
+        };
+    }
+
+    public async Task<ApiResponse<BulkReminderResultDto>> SendRemindersAsync(List<Guid> invoiceIds)
+    {
+        var distinct = invoiceIds.Distinct().ToList();
+        if (distinct.Count == 0)
+            return new ApiResponse<BulkReminderResultDto> { Success = false, Message = "No invoice IDs provided" };
+
+        // Inline pre-check so the admin gets an immediate breakdown of what will/won't be sent.
+        var rows = await db.SalesInvoices
+            .Where(i => distinct.Contains(i.Id))
+            .Select(i => new { i.Id, i.Status, HasEmail = i.Customer != null && i.Customer.Email != null && i.Customer.Email != "" })
+            .ToListAsync();
+
+        var found = rows.Select(r => r.Id).ToHashSet();
+        var eligible = rows
+            .Where(r => (r.Status == SalesInvoiceStatus.Issued || r.Status == SalesInvoiceStatus.PartiallyPaid) && r.HasEmail)
+            .Select(r => r.Id)
+            .ToList();
+        var notFound = distinct.Where(id => !found.Contains(id)).ToList();
+        var skipped = rows
+            .Where(r => !(r.Status == SalesInvoiceStatus.Issued || r.Status == SalesInvoiceStatus.PartiallyPaid) || !r.HasEmail)
+            .Select(r => r.Id)
+            .ToList();
+
+        if (eligible.Count > 0)
+            jobs.Enqueue<ReminderJobs>(j => j.SendRemindersForInvoicesAsync(eligible, CancellationToken.None));
+
+        return new ApiResponse<BulkReminderResultDto>
+        {
+            Success = true,
+            Message = eligible.Count > 0 ? $"Queued {eligible.Count} reminder email(s)" : "No eligible invoices to remind",
+            Data = new BulkReminderResultDto
+            {
+                Queued = eligible,
+                Skipped = skipped,
+                NotFound = notFound
+            }
+        };
+    }
+
     public async Task<ApiResponse<SalesInvoiceDto>> VoidAsync(Guid id)
     {
         var invoice = await db.SalesInvoices
@@ -139,6 +222,14 @@ public class SalesInvoiceService(AppDbContext db, StockMovementService stock, No
         {
             line.Part.StockQuantity += line.Quantity;
             stock.Record(line.PartId, line.Quantity, StockMovementReason.Void, invoice.Id);
+        }
+
+        // Reverse the points that were earned when this invoice was created. Clamp to zero
+        // so a customer can never end up with a negative balance.
+        if (invoice.Customer != null)
+        {
+            var refund = PointsEarnedFor(invoice.Subtotal);
+            invoice.Customer.LoyaltyPoints = Math.Max(0, invoice.Customer.LoyaltyPoints - refund);
         }
 
         await db.SaveChangesAsync();
