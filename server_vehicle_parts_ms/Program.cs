@@ -29,6 +29,10 @@ builder.Host.UseSerilog((context, services, config) => config
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
+    // EF Core logs every SQL command at Information by default. Bump to Warning so the
+    // console only shows actual problems (slow queries, errors) rather than every SELECT.
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Infrastructure", Serilog.Events.LogEventLevel.Warning)
     .WriteTo.Console());
 
 var port = Environment.GetEnvironmentVariable("PORT");
