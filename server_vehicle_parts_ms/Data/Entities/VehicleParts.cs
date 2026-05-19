@@ -22,6 +22,8 @@ public class VehicleParts : IHasTimestamps
     public int StockQuantity { get; set; }
     public int ReorderLevel { get; set; } = 10;
     public bool IsActive { get; set; } = true;
+    [StringLength(500)]
+    public string? ImageUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }

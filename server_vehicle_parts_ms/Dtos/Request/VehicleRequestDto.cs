@@ -14,4 +14,6 @@ public class VehicleRequestDto
     public string? Model { get; set; }
     public int? Year { get; set; }
     public string? Color { get; set; }
+    [StringLength(500)]
+    public string? ImageUrl { get; set; }
 }

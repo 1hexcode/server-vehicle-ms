@@ -23,6 +23,7 @@ public class AppDbContext: DbContext
     public DbSet<Notifications> Notifications { get; set; }
     public DbSet<VendorPayments> VendorPayments { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
+    public DbSet<ReminderSchedule> ReminderSchedules { get; set; }
 
     public override int SaveChanges()
     {
@@ -223,5 +224,12 @@ public class AppDbContext: DbContext
             .OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Notifications>()
             .HasIndex(n => new { n.UserId, n.IsRead });
+
+        builder.Entity<ReminderSchedule>()
+            .Property(r => r.Frequency)
+            .HasConversion<string>();
+        builder.Entity<ReminderSchedule>()
+            .HasIndex(r => r.JobKey)
+            .IsUnique();
     }
 }

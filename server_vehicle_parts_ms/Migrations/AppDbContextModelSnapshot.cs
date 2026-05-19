@@ -274,6 +274,63 @@ namespace server_vehicle_parts_ms.Migrations
                     b.ToTable("PurchaseInvoices");
                 });
 
+            modelBuilder.Entity("server_vehicle_parts_ms.Data.Entities.ReminderSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CustomMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Hour")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JobKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("Minute")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobKey")
+                        .IsUnique();
+
+                    b.ToTable("ReminderSchedules");
+                });
+
             modelBuilder.Entity("server_vehicle_parts_ms.Data.Entities.Reviews", b =>
                 {
                     b.Property<Guid>("Id")
@@ -511,6 +568,9 @@ namespace server_vehicle_parts_ms.Migrations
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("LoyaltyPoints")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
@@ -558,6 +618,10 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -614,6 +678,10 @@ namespace server_vehicle_parts_ms.Migrations
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Make")
                         .HasMaxLength(50)

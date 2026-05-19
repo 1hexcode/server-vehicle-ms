@@ -22,6 +22,10 @@ public class Users : IHasTimestamps
     public string Address { get; set; }
     public bool IsActive { get; set; } = true;
 
+    // Lifetime loyalty balance. Earned on sales-invoice creation (1 pt per Rs. 100 of subtotal),
+    // reversed on void. Only meaningful for Customer-role users.
+    public int LoyaltyPoints { get; set; } = 0;
+
     // ── Email verification ────────────────────────────────────────────────
     /// <summary>True once the user has clicked the verification link.</summary>
     public bool IsEmailVerified { get; set; } = false;

@@ -19,6 +19,8 @@ public class Vehicles : IHasTimestamps
     public int? Year { get; set; }
     [StringLength(30)]
     public string? Color { get; set; }
+    [StringLength(500)]
+    public string? ImageUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 }
