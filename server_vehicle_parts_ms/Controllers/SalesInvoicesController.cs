@@ -44,4 +44,16 @@ public class SalesInvoicesController(SalesInvoiceService service) : ControllerBa
         var response = await service.VoidAsync(id);
         return Ok(response);
     }
+
+    // Bulk-send payment reminders for the picked invoices. Reuses the same email
+    // template as the scheduled job, but lets admins target specific invoices.
+    [HttpPost("send-reminders")]
+    public async Task<IActionResult> SendReminders([FromBody] BulkInvoiceReminderDto dto)
+        => Ok(await service.SendRemindersAsync(dto.InvoiceIds));
+
+    // Deliver the invoice itself to the customer. Body is optional; when omitted
+    // the invoice's customer email is used.
+    [HttpPost("{id:guid}/email")]
+    public async Task<IActionResult> EmailInvoice(Guid id, [FromBody] SendInvoiceEmailDto? dto)
+        => Ok(await service.SendEmailAsync(id, dto?.ToEmail));
 }
