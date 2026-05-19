@@ -73,6 +73,7 @@ public class ProfileService(AppDbContext db)
         Address = u.Address,
         Role = u.Role.ToString(),
         IsActive = u.IsActive,
+        LoyaltyPoints = u.LoyaltyPoints,
         CreatedAt = u.CreatedAt
     };
 }

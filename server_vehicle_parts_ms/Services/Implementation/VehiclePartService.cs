@@ -27,7 +27,8 @@ public class VehiclePartService(AppDbContext db)
             UnitPrice = dto.UnitPrice,
             StockQuantity = dto.StockQuantity,
             ReorderLevel = dto.ReorderLevel,
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            ImageUrl = dto.ImageUrl
         };
         db.VehicleParts.Add(part);
 
@@ -67,6 +68,7 @@ public class VehiclePartService(AppDbContext db)
                 StockQuantity = p.StockQuantity,
                 ReorderLevel = p.ReorderLevel,
                 IsActive = p.IsActive,
+                ImageUrl = p.ImageUrl,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt
             })
@@ -110,6 +112,7 @@ public class VehiclePartService(AppDbContext db)
         part.StockQuantity = dto.StockQuantity;
         part.ReorderLevel = dto.ReorderLevel;
         part.IsActive = dto.IsActive;
+        part.ImageUrl = dto.ImageUrl;
         await db.SaveChangesAsync();
 
         return new ApiResponse<VehiclePartDto> { Success = true, Message = "Part updated", Data = await LoadDtoAsync(part.Id) };
@@ -148,6 +151,7 @@ public class VehiclePartService(AppDbContext db)
         StockQuantity = p.StockQuantity,
         ReorderLevel = p.ReorderLevel,
         IsActive = p.IsActive,
+        ImageUrl = p.ImageUrl,
         CreatedAt = p.CreatedAt,
         UpdatedAt = p.UpdatedAt
     };

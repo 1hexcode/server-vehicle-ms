@@ -22,7 +22,8 @@ public class VehicleService(AppDbContext db)
             Make = dto.Make,
             Model = dto.Model,
             Year = dto.Year,
-            Color = dto.Color
+            Color = dto.Color,
+            ImageUrl = dto.ImageUrl
         };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
@@ -63,6 +64,7 @@ public class VehicleService(AppDbContext db)
         v.Model = dto.Model;
         v.Year = dto.Year;
         v.Color = dto.Color;
+        v.ImageUrl = dto.ImageUrl;
         await db.SaveChangesAsync();
         return new ApiResponse<VehicleDto> { Success = true, Message = "Vehicle updated", Data = ToDto(v) };
     }
@@ -89,6 +91,7 @@ public class VehicleService(AppDbContext db)
         Model = v.Model,
         Year = v.Year,
         Color = v.Color,
+        ImageUrl = v.ImageUrl,
         CreatedAt = v.CreatedAt
     };
 }

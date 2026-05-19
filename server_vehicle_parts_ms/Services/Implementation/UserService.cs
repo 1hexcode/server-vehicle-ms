@@ -32,7 +32,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 PhoneNumber = u.PhoneNumber,
                 Address = u.Address,
                 Role = u.Role.ToString(),
-                IsActive = u.IsActive
+                IsActive = u.IsActive,
+                LoyaltyPoints = u.LoyaltyPoints
             })
             .ToListAsync();
 
@@ -56,7 +57,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 PhoneNumber = u.PhoneNumber,
                 Address = u.Address,
                 Role = u.Role.ToString(),
-                IsActive = u.IsActive
+                IsActive = u.IsActive,
+                LoyaltyPoints = u.LoyaltyPoints
             })
             .ToListAsync();
 
@@ -96,7 +98,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    LoyaltyPoints = user.LoyaltyPoints
                 }
             };
         }
@@ -254,7 +257,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    LoyaltyPoints = user.LoyaltyPoints
                 }
             };
         }
@@ -332,7 +336,8 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                     PhoneNumber = user.PhoneNumber,
                     Address = user.Address,
                     Role = user.Role.ToString(),
-                    IsActive = user.IsActive
+                    IsActive = user.IsActive,
+                    LoyaltyPoints = user.LoyaltyPoints
                 }
             };
         }
