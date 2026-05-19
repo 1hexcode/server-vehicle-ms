@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server_vehicle_parts_ms.Dtos;
+using server_vehicle_parts_ms.Dtos.Request;
 using server_vehicle_parts_ms.Dtos.Response;
 using server_vehicle_parts_ms.Helpers;
 
@@ -18,9 +19,11 @@ public class UploadsController(IImageUploadService uploader, ILogger<UploadsCont
     };
 
     [HttpPost("image")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxBytes)]
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile? file, [FromForm] string? folder)
+    public async Task<IActionResult> UploadImage([FromForm] ImageUploadRequestDto dto)
     {
+        var file = dto.File;
         if (file == null || file.Length == 0)
             return Ok(new ApiResponse<ImageUploadResultDto> { Success = false, Message = "No file uploaded" });
         if (file.Length > MaxBytes)
@@ -31,7 +34,7 @@ public class UploadsController(IImageUploadService uploader, ILogger<UploadsCont
         try
         {
             await using var stream = file.OpenReadStream();
-            var result = await uploader.UploadAsync(stream, file.FileName, folder);
+            var result = await uploader.UploadAsync(stream, file.FileName, dto.Folder);
             return Ok(new ApiResponse<ImageUploadResultDto>
             {
                 Success = true,
