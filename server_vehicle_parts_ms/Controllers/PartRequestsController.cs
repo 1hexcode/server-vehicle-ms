@@ -37,7 +37,7 @@ public class PartRequestsController(PartRequestService service) : ControllerBase
     }
 
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] PartRequestStatusUpdateDto dto)
     {
         var admin = User.GetUserId();
