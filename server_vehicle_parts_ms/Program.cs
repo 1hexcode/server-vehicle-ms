@@ -188,6 +188,23 @@ else
     builder.Services.AddSingleton<IEmailService, LoggingOnlyEmailService>();
 builder.Services.AddScoped<EmailJobs>();
 
+var cloudinarySettings = new CloudinarySettings
+{
+    CloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME") ?? builder.Configuration["Cloudinary:CloudName"] ?? "",
+    ApiKey    = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY")    ?? builder.Configuration["Cloudinary:ApiKey"]    ?? "",
+    ApiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET") ?? builder.Configuration["Cloudinary:ApiSecret"] ?? "",
+    Folder    = Environment.GetEnvironmentVariable("CLOUDINARY_FOLDER")     ?? builder.Configuration["Cloudinary:Folder"]    ?? "vehicle-parts-ms",
+};
+builder.Services.AddSingleton(cloudinarySettings);
+if (!string.IsNullOrWhiteSpace(cloudinarySettings.CloudName) &&
+    !string.IsNullOrWhiteSpace(cloudinarySettings.ApiKey) &&
+    !string.IsNullOrWhiteSpace(cloudinarySettings.ApiSecret))
+    builder.Services.AddSingleton<IImageUploadService, CloudinaryImageUploadService>();
+else
+    builder.Services.AddSingleton<IImageUploadService, DisabledImageUploadService>();
+builder.Services.AddScoped<ReminderJobs>();
+builder.Services.AddScoped<ReminderScheduleService>();
+
 builder.Services.AddHangfire(config => config
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -269,7 +286,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-}       
+
+    // Seed default schedule rows and (re)register every enabled job with Hangfire.
+    // Admins can change the cadence at runtime via /api/reminder-schedules.
+    var schedules = scope.ServiceProvider.GetRequiredService<ReminderScheduleService>();
+    schedules.SyncFromDatabaseAsync().GetAwaiter().GetResult();
+}
+
 
 try
 {
