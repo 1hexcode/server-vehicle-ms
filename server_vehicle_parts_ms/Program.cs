@@ -161,6 +161,7 @@ builder.Services.AddScoped<VehiclePartService>();
 builder.Services.AddScoped<StockMovementService>();
 builder.Services.AddScoped<PurchaseInvoiceService>();
 builder.Services.AddScoped<SalesInvoiceService>();
+builder.Services.AddScoped<HotDealService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<VehicleService>();
 builder.Services.AddScoped<NotificationService>();

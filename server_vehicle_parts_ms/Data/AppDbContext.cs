@@ -24,6 +24,7 @@ public class AppDbContext: DbContext
     public DbSet<VendorPayments> VendorPayments { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
     public DbSet<ReminderSchedule> ReminderSchedules { get; set; }
+    public DbSet<HotDeals> HotDeals { get; set; }
 
     public override int SaveChanges()
     {
@@ -231,5 +232,13 @@ public class AppDbContext: DbContext
         builder.Entity<ReminderSchedule>()
             .HasIndex(r => r.JobKey)
             .IsUnique();
+
+        builder.Entity<HotDeals>()
+            .HasOne(d => d.Part)
+            .WithMany()
+            .HasForeignKey(d => d.PartId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<HotDeals>()
+            .HasIndex(d => new { d.IsActive, d.StartsAt, d.EndsAt });
     }
 }
