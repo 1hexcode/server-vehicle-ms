@@ -187,10 +187,9 @@ var emailSettings = new EmailSettings
     FromName  = Environment.GetEnvironmentVariable("SMTP_FROM_NAME")  ?? "Vehicle Parts MS",
 };
 builder.Services.AddSingleton(emailSettings);
-if (!string.IsNullOrEmpty(emailSettings.Host))
-    builder.Services.AddSingleton<IEmailService, MailKitEmailService>();
-else
-    builder.Services.AddSingleton<IEmailService, LoggingOnlyEmailService>();
+// Email sending temporarily disabled: SMTP timeouts were blocking Hangfire workers
+// on Railway (each job retried 10x). Revert by restoring the Host-based branch.
+builder.Services.AddSingleton<IEmailService, LoggingOnlyEmailService>();
 builder.Services.AddScoped<EmailJobs>();
 
 var cloudinarySettings = new CloudinarySettings
