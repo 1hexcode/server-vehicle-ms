@@ -19,20 +19,24 @@ public class CustomersController(IUserService userService) : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> ListCustomers()
+    public async Task<IActionResult> ListCustomers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var response = await userService.GetAllCustomersAsync();
+        var response = await userService.GetAllCustomersAsync(page, pageSize);
         return Ok(response);
     }
 
     // Case-insensitive contains match. Any combination of params can be supplied;
-    // they're AND-combined. Returns an empty data array when nothing matches.
+    // they're AND-combined. Returns an empty items array when nothing matches.
     [HttpGet("search")]
     public async Task<IActionResult> Search(
         [FromQuery] string? name,
         [FromQuery] string? phone,
-        [FromQuery] string? vehicleNo)
-        => Ok(await userService.SearchCustomersAsync(name, phone, vehicleNo));
+        [FromQuery] string? vehicleNo,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+        => Ok(await userService.SearchCustomersAsync(name, phone, vehicleNo, page, pageSize));
 
     [HttpPost("with-vehicle")]
     public async Task<IActionResult> RegisterWithVehicle([FromBody] RegisterCustomerWithVehicleDto dto)

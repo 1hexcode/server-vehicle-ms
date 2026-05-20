@@ -44,32 +44,10 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
         };
     }
 
-    public async Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> GetAllCustomersAsync()
-    {
-        var customers = await dbContext.Users
-            .Where(u => u.Role == UserRoles.Customer)
-            .OrderByDescending(u => u.CreatedAt)
-            .Select(u => new UserCreateResponseDto
-            {
-                Id = u.Id,
-                Email = u.Email,
-                FullName = u.FullName,
-                PhoneNumber = u.PhoneNumber,
-                Address = u.Address,
-                Role = u.Role.ToString(),
-                IsActive = u.IsActive,
-                LoyaltyPoints = u.LoyaltyPoints
-            })
-            .ToListAsync();
+    public Task<ApiResponse<PagedResult<UserCreateResponseDto>>> GetAllCustomersAsync(int page, int pageSize)
+        => PageCustomersAsync(dbContext.Users.Where(u => u.Role == UserRoles.Customer), page, pageSize);
 
-        return new ApiResponse<IEnumerable<UserCreateResponseDto>>
-        {
-            Success = true,
-            Data = customers
-        };
-    }
-
-    public async Task<ApiResponse<IEnumerable<UserCreateResponseDto>>> SearchCustomersAsync(string? name, string? phone, string? vehicleNo)
+    public Task<ApiResponse<PagedResult<UserCreateResponseDto>>> SearchCustomersAsync(string? name, string? phone, string? vehicleNo, int page, int pageSize)
     {
         var q = dbContext.Users.Where(u => u.Role == UserRoles.Customer);
 
@@ -86,8 +64,20 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
                 v.CustomerId == u.Id && EF.Functions.ILike(v.VehicleNumber, $"%{vn}%")));
         }
 
-        var customers = await q
+        return PageCustomersAsync(q, page, pageSize);
+    }
+
+    private async Task<ApiResponse<PagedResult<UserCreateResponseDto>>> PageCustomersAsync(IQueryable<Users> query, int page, int pageSize)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+        var total = await query.CountAsync();
+        var items = await query
             .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(u => new UserCreateResponseDto
             {
                 Id = u.Id,
@@ -101,10 +91,16 @@ public class UserService(AppDbContext dbContext, IBackgroundJobClient jobs, ILog
             })
             .ToListAsync();
 
-        return new ApiResponse<IEnumerable<UserCreateResponseDto>>
+        return new ApiResponse<PagedResult<UserCreateResponseDto>>
         {
             Success = true,
-            Data = customers
+            Data = new PagedResult<UserCreateResponseDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                Total = total
+            }
         };
     }
 
